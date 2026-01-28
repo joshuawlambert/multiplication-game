@@ -398,6 +398,29 @@ h2 {
     padding: 40px;
 }
 
+.loading {
+    text-align: center;
+    color: #74c0fc;
+    font-size: 18px;
+    padding: 40px;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+}
+
+.config-notice {
+    text-align: center;
+    color: #fab005;
+    font-size: 14px;
+    padding: 15px;
+    background: #fff9db;
+    border-radius: 10px;
+    margin-top: 20px;
+}
+
 /* Help Screen */
 .help-content {
     width: 100%;

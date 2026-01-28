@@ -10,12 +10,20 @@ let gameState = {
     startTime: null,
     timerInterval: null,
     playerName: '',
-    isMobile: false
+    isMobile: false,
+    globalLeaderboard: []
 };
+
+// JSONBin.io Configuration
+// To set up: Go to https://jsonbin.io/ and create a free account
+// Create a new bin with initial content: {"scores": []}
+// Paste your bin ID below:
+const JSONBIN_ID = 'YOUR_BIN_ID_HERE'; // Replace this with your actual bin ID
+const JSONBIN_URL = `https://api.jsonbin.io/v3/b/${JSONBIN_ID}`;
+const JSONBIN_API_KEY = '$2a$10$YOUR_API_KEY_HERE'; // Replace with your JSONBin API key
 
 // Device Detection
 function detectMobile() {
-    // Check for touch device and small screen
     const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
     const isSmallScreen = window.innerWidth <= 768;
     const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -35,25 +43,98 @@ if (gameState.isMobile) {
     document.body.classList.remove('mobile-device');
 }
 
-// Leaderboard Management - Separate for Mobile and Desktop
-function getLeaderboardKey() {
-    return gameState.isMobile ? 'mathBlasterLeaderboardMobile' : 'mathBlasterLeaderboardDesktop';
+// Global Leaderboard Management (JSONBin.io)
+async function fetchGlobalLeaderboard() {
+    if (JSONBIN_ID === 'YOUR_BIN_ID_HERE') {
+        console.log('JSONBin not configured yet, using localStorage only');
+        return getLocalLeaderboard();
+    }
+    
+    try {
+        const response = await fetch(JSONBIN_URL + '/latest', {
+            headers: {
+                'X-Master-Key': JSONBIN_API_KEY
+            }
+        });
+        
+        if (!response.ok) throw new Error('Failed to fetch');
+        
+        const data = await response.json();
+        gameState.globalLeaderboard = data.record.scores || [];
+        return gameState.globalLeaderboard;
+    } catch (error) {
+        console.error('Error fetching global leaderboard:', error);
+        // Fallback to localStorage
+        return getLocalLeaderboard();
+    }
 }
 
-function getLeaderboard() {
-    const key = getLeaderboardKey();
-    const stored = localStorage.getItem(key);
+async function updateGlobalLeaderboard(name, score, time) {
+    if (JSONBIN_ID === 'YOUR_BIN_ID_HERE') {
+        console.log('JSONBin not configured, saving to localStorage only');
+        return addToLocalLeaderboard(name, score, time);
+    }
+    
+    try {
+        // Get current scores
+        const currentScores = await fetchGlobalLeaderboard();
+        
+        // Add new score
+        currentScores.push({
+            name: name,
+            score: score,
+            time: time,
+            date: new Date().toISOString(),
+            isMobile: gameState.isMobile
+        });
+        
+        // Sort by score (descending), then by time (ascending)
+        currentScores.sort((a, b) => {
+            if (b.score !== a.score) return b.score - a.score;
+            return a.time - b.time;
+        });
+        
+        // Keep only top 20 (more than display to allow for filtering)
+        currentScores.splice(20);
+        
+        // Update JSONBin
+        const response = await fetch(JSONBIN_URL, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Master-Key': JSONBIN_API_KEY
+            },
+            body: JSON.stringify({ scores: currentScores })
+        });
+        
+        if (!response.ok) throw new Error('Failed to update');
+        
+        gameState.globalLeaderboard = currentScores;
+        
+        // Also save to localStorage as backup
+        addToLocalLeaderboard(name, score, time);
+        
+        return currentScores;
+    } catch (error) {
+        console.error('Error updating global leaderboard:', error);
+        // Fallback to localStorage
+        return addToLocalLeaderboard(name, score, time);
+    }
+}
+
+// Local Leaderboard Management (LocalStorage)
+function getLocalLeaderboard() {
+    const stored = localStorage.getItem('mathBlasterGlobalScores');
     return stored ? JSON.parse(stored) : [];
 }
 
-function saveLeaderboard(leaderboard) {
-    const key = getLeaderboardKey();
-    localStorage.setItem(key, JSON.stringify(leaderboard));
+function saveLocalLeaderboard(scores) {
+    localStorage.setItem('mathBlasterGlobalScores', JSON.stringify(scores));
 }
 
-function addToLeaderboard(name, score, time) {
-    const leaderboard = getLeaderboard();
-    leaderboard.push({
+function addToLocalLeaderboard(name, score, time) {
+    const scores = getLocalLeaderboard();
+    scores.push({
         name: name,
         score: score,
         time: time,
@@ -61,33 +142,59 @@ function addToLeaderboard(name, score, time) {
         isMobile: gameState.isMobile
     });
     
-    // Sort by score (descending), then by time (ascending)
-    leaderboard.sort((a, b) => {
+    scores.sort((a, b) => {
         if (b.score !== a.score) return b.score - a.score;
         return a.time - b.time;
     });
     
-    // Keep only top 10
-    leaderboard.splice(10);
-    saveLeaderboard(leaderboard);
-    return leaderboard;
+    scores.splice(20);
+    saveLocalLeaderboard(scores);
+    return scores;
 }
 
-function getRank(score) {
-    const leaderboard = getLeaderboard();
+// Combined leaderboard function
+async function addToLeaderboard(name, score, time) {
+    // Try to update global leaderboard
+    await updateGlobalLeaderboard(name, score, time);
+    // Return merged leaderboard
+    return await getMergedLeaderboard();
+}
+
+async function getMergedLeaderboard() {
+    const global = await fetchGlobalLeaderboard();
+    const local = getLocalLeaderboard();
+    
+    // Merge and deduplicate (prefer global scores)
+    const seen = new Set();
+    const merged = [];
+    
+    [...global, ...local].forEach(entry => {
+        const key = `${entry.name}-${entry.score}-${entry.time}`;
+        if (!seen.has(key)) {
+            seen.add(key);
+            merged.push(entry);
+        }
+    });
+    
+    // Sort and limit
+    merged.sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        return a.time - b.time;
+    });
+    
+    return merged.slice(0, 10);
+}
+
+function getRank(score, time) {
+    const leaderboard = gameState.globalLeaderboard.length > 0 ? 
+        gameState.globalLeaderboard : getLocalLeaderboard();
+    
     let rank = 1;
     for (let entry of leaderboard) {
         if (entry.score > score) rank++;
-        else if (entry.score === score && entry.time < gameState.elapsedTime) rank++;
+        else if (entry.score === score && entry.time < time) rank++;
     }
     return rank;
-}
-
-// Get the other device's leaderboard for comparison
-function getOtherLeaderboard() {
-    const key = gameState.isMobile ? 'mathBlasterLeaderboardDesktop' : 'mathBlasterLeaderboardMobile';
-    const stored = localStorage.getItem(key);
-    return stored ? JSON.parse(stored) : [];
 }
 
 // Screen Management
@@ -125,7 +232,7 @@ function startGame() {
     gameState.playerAnswer = '';
     gameState.startTime = Date.now();
     
-    // Re-detect device in case of orientation change or resize
+    // Re-detect device
     gameState.isMobile = detectMobile();
     updateDeviceUI();
     
@@ -145,7 +252,6 @@ function startGame() {
 }
 
 function updateDeviceUI() {
-    // Update body classes
     if (gameState.isMobile) {
         document.body.classList.add('mobile-device');
         document.body.classList.remove('desktop-device');
@@ -154,14 +260,8 @@ function updateDeviceUI() {
         document.body.classList.remove('mobile-device');
     }
     
-    // Show/hide appropriate input hints
-    const numpad = document.querySelector('.numpad');
     const mobileHint = document.querySelector('.mobile-hint');
     const desktopHint = document.querySelector('.desktop-hint');
-    
-    if (numpad) {
-        numpad.style.display = 'flex';
-    }
     
     if (mobileHint) {
         mobileHint.style.display = gameState.isMobile ? 'block' : 'none';
@@ -172,16 +272,12 @@ function updateDeviceUI() {
     }
 }
 
-// Simplified: Always 2 numbers (1-12) for 8-10 year olds
+// Generate 2-number multiplication (1-12)
 function generateQuestion() {
-    // Always generate 2 numbers for age-appropriate difficulty
     const num1 = Math.floor(Math.random() * 12) + 1;
     const num2 = Math.floor(Math.random() * 12) + 1;
     
-    // Calculate answer
     gameState.currentAnswer = num1 * num2;
-    
-    // Display question
     document.getElementById('question').textContent = `${num1} × ${num2} =`;
     clearAnswer();
 }
@@ -218,42 +314,29 @@ function submitAnswer() {
 }
 
 function handleCorrect() {
-    // Points: base 10 points per correct answer
     let points = 10;
     
-    // Streak bonus
     gameState.streak++;
     if (gameState.streak > gameState.bestStreak) {
         gameState.bestStreak = gameState.streak;
     }
     
-    // Bonus for streaks of 3 or more
-    if (gameState.streak >= 3) {
-        points += 5; // Extra 5 points for streaks
-    }
-    if (gameState.streak >= 5) {
-        points += 5; // Another 5 for longer streaks
-    }
-    if (gameState.streak >= 10) {
-        points += 10; // Big bonus for 10+ streak
-    }
+    if (gameState.streak >= 3) points += 5;
+    if (gameState.streak >= 5) points += 5;
+    if (gameState.streak >= 10) points += 10;
     
     gameState.score += points;
     gameState.correct++;
     
-    // Show feedback
     let message = '✓ CORRECT!';
     if (gameState.streak >= 10) message = '🔥 UNSTOPPABLE!';
     else if (gameState.streak >= 5) message = '⚡ AMAZING!';
     else if (gameState.streak >= 3) message = '🔥 AWESOME!';
     
     showFeedback('correct', message);
-    
-    // Update UI
     updateStats();
     updateProgressBar();
     
-    // Generate next question after delay
     setTimeout(() => {
         generateQuestion();
     }, 800);
@@ -263,13 +346,9 @@ function handleWrong() {
     gameState.wrong++;
     gameState.streak = 0;
     
-    // Show feedback
     showFeedback('wrong', `✗ The answer was ${gameState.currentAnswer}`);
-    
-    // Update UI
     updateStats();
     
-    // End game after delay
     setTimeout(() => {
         endGame();
     }, 1500);
@@ -301,25 +380,21 @@ function updateTimer() {
 }
 
 function updateProgressBar() {
-    // Progress toward next level (every 50 points = new level)
     const progress = (gameState.score % 50) / 50 * 100;
     document.getElementById('progress-fill').style.width = progress + '%';
 }
 
-function endGame() {
-    // Stop timer
+async function endGame() {
     if (gameState.timerInterval) {
         clearInterval(gameState.timerInterval);
         gameState.timerInterval = null;
     }
     
-    // Calculate final time
     gameState.elapsedTime = (Date.now() - gameState.startTime) / 1000;
     
-    // Add to leaderboard
-    addToLeaderboard(gameState.playerName, gameState.score, gameState.elapsedTime);
+    // Add to global leaderboard
+    await addToLeaderboard(gameState.playerName, gameState.score, gameState.elapsedTime);
     
-    // Update game over screen
     document.getElementById('final-score').textContent = gameState.score;
     document.getElementById('final-correct').textContent = gameState.correct;
     document.getElementById('final-streak').textContent = gameState.bestStreak;
@@ -329,24 +404,21 @@ function endGame() {
     document.getElementById('final-time').textContent = 
         `${minutes}:${seconds.toString().padStart(2, '0')}`;
     
-    // Show rank message
-    const rank = getRank(gameState.score);
-    const deviceLabel = gameState.isMobile ? '📱 Mobile' : '💻 Desktop';
+    const rank = getRank(gameState.score, gameState.elapsedTime);
     const rankMessage = document.getElementById('rank-message');
     
     if (rank === 1) {
-        rankMessage.textContent = `🏆 NEW ${deviceLabel} HIGH SCORE! 🏆`;
+        rankMessage.textContent = '🏆 NEW GLOBAL HIGH SCORE! 🏆';
         createConfetti();
     } else if (rank <= 3) {
-        rankMessage.textContent = `🥉 Rank #${rank} on ${deviceLabel}!`;
+        rankMessage.textContent = `🥉 Rank #${rank} Globally!`;
         createConfetti();
     } else if (rank <= 10) {
-        rankMessage.textContent = `Great job! You're #${rank} on ${deviceLabel}!`;
+        rankMessage.textContent = `Great job! You're #${rank} on the global leaderboard!`;
     } else {
         rankMessage.textContent = 'Good try! Play again to beat your score!';
     }
     
-    // Show game over screen
     showScreen('gameover-screen');
 }
 
@@ -366,7 +438,6 @@ function createConfetti() {
         container.appendChild(confetti);
     }
     
-    // Clear confetti after animation
     setTimeout(() => {
         container.innerHTML = '';
     }, 5000);
@@ -387,66 +458,51 @@ function playAgain() {
 }
 
 // Leaderboard Screen
-function showLeaderboard() {
-    const currentLeaderboard = getLeaderboard();
-    const otherLeaderboard = getOtherLeaderboard();
+async function showLeaderboard() {
     const listElement = document.getElementById('leaderboard-list');
-    const deviceLabel = gameState.isMobile ? '📱 Mobile' : '💻 Desktop';
     
-    let html = `<div class="leaderboard-section"><h3>${deviceLabel} Scores</h3>`;
+    // Show loading
+    listElement.innerHTML = '<div class="loading">Loading global scores...</div>';
+    showScreen('leaderboard-screen');
     
-    if (currentLeaderboard.length === 0) {
-        html += '<div class="empty-leaderboard">No scores yet! Be the first to play!</div>';
-    } else {
-        html += currentLeaderboard.map((entry, index) => {
-            const rank = index + 1;
-            const rankClass = rank === 1 ? 'gold' : rank === 2 ? 'silver' : rank === 3 ? 'bronze' : '';
-            const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `${rank}.`;
-            
-            return `
-                <div class="leaderboard-item">
-                    <span class="leaderboard-rank ${rankClass}">${medal}</span>
-                    <span class="leaderboard-name">${entry.name}</span>
-                    <span class="leaderboard-score">${entry.score} pts</span>
-                </div>
-            `;
-        }).join('');
+    // Fetch global leaderboard
+    const leaderboard = await getMergedLeaderboard();
+    
+    if (leaderboard.length === 0) {
+        listElement.innerHTML = '<div class="empty-leaderboard">No scores yet! Be the first to play!</div>';
+        return;
     }
+    
+    let html = '<div class="leaderboard-section"><h3>🌍 Global Leaderboard</h3>';
+    
+    html += leaderboard.map((entry, index) => {
+        const rank = index + 1;
+        const rankClass = rank === 1 ? 'gold' : rank === 2 ? 'silver' : rank === 3 ? 'bronze' : '';
+        const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `${rank}.`;
+        const deviceIcon = entry.isMobile ? '📱' : '💻';
+        
+        return `
+            <div class="leaderboard-item">
+                <span class="leaderboard-rank ${rankClass}">${medal}</span>
+                <span class="leaderboard-name">${deviceIcon} ${entry.name}</span>
+                <span class="leaderboard-score">${entry.score} pts</span>
+            </div>
+        `;
+    }).join('');
     
     html += '</div>';
     
-    // Show other device leaderboard for comparison
-    const otherLabel = gameState.isMobile ? '💻 Desktop' : '📱 Mobile';
-    html += `<div class="leaderboard-section other-device"><h3>${otherLabel} Scores</h3>`;
-    
-    if (otherLeaderboard.length === 0) {
-        html += '<div class="empty-leaderboard">No scores on this device yet!</div>';
-    } else {
-        html += otherLeaderboard.slice(0, 5).map((entry, index) => {
-            const rank = index + 1;
-            const rankClass = rank === 1 ? 'gold' : rank === 2 ? 'silver' : rank === 3 ? 'bronze' : '';
-            const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `${rank}.`;
-            
-            return `
-                <div class="leaderboard-item other-device-item">
-                    <span class="leaderboard-rank ${rankClass}">${medal}</span>
-                    <span class="leaderboard-name">${entry.name}</span>
-                    <span class="leaderboard-score">${entry.score} pts</span>
-                </div>
-            `;
-        }).join('');
+    // Show connection status
+    if (JSONBIN_ID === 'YOUR_BIN_ID_HERE') {
+        html += '<div class="config-notice">⚠️ Global leaderboard not configured yet</div>';
     }
-    
-    html += '</div>';
     
     listElement.innerHTML = html;
-    showScreen('leaderboard-screen');
 }
 
 // Keyboard Support - Only for desktop
 if (!gameState.isMobile) {
     document.addEventListener('keydown', (e) => {
-        // Only handle keyboard if game screen is active
         if (!document.getElementById('game-screen').classList.contains('active')) return;
         
         if (e.key >= '0' && e.key <= '9') {
@@ -472,7 +528,7 @@ document.addEventListener('touchend', (e) => {
     lastTouchEnd = now;
 }, false);
 
-// Handle window resize to re-detect device
+// Handle window resize
 window.addEventListener('resize', () => {
     gameState.isMobile = detectMobile();
     updateDeviceUI();
@@ -481,4 +537,6 @@ window.addEventListener('resize', () => {
 // Initialize UI on load
 document.addEventListener('DOMContentLoaded', () => {
     updateDeviceUI();
+    // Pre-fetch global leaderboard
+    fetchGlobalLeaderboard();
 });

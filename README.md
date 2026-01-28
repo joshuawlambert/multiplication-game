@@ -1,6 +1,6 @@
 # 🎮 Math Blaster - Multiplication Game
 
-A fun, interactive multiplication learning game designed for kids aged 7-10. Built for GitHub Pages!
+A fun, interactive multiplication learning game designed for kids aged 7-10. Built for GitHub Pages with **global leaderboard** support!
 
 ## 🌟 Play Now
 
@@ -14,7 +14,7 @@ A fun, interactive multiplication learning game designed for kids aged 7-10. Bui
 - **🎯 Age-Appropriate** - Only 2-number multiplication (1×1 to 12×12)
 - **⭐ Score Tracking** - 10 points per answer + streak bonuses
 - **🔥 Streak System** - 3+ streak = +5pts, 5+ = +10pts, 10+ = +20pts
-- **🏆 Separate Leaderboards** - Mobile and Desktop scores tracked separately
+- **🏆 GLOBAL Leaderboard** - Scores sync across ALL devices worldwide!
 - **📲 Device Detection** - Automatically adapts to touch or keyboard input
 - **🎉 Confetti Celebration** - Party effects for high scores!
 
@@ -26,7 +26,7 @@ A fun, interactive multiplication learning game designed for kids aged 7-10. Bui
 4. **Desktop:** Type numbers on your keyboard + press Enter
 5. Build streaks for bonus points!
 6. One wrong answer ends the game
-7. Try to get on the leaderboard!
+7. Try to get on the **global leaderboard**!
 
 ## 📱 Mobile vs Desktop
 
@@ -43,7 +43,35 @@ The game automatically detects your device:
 - Enter to submit, Backspace to delete
 - Larger display
 
-**Leaderboards are separate** - compete with other mobile players or desktop players!
+## 🏆 Global Leaderboard Setup
+
+This game uses **JSONBin.io** for a shared global leaderboard that works across all devices!
+
+### Setting Up Your Own Global Leaderboard:
+
+1. **Create a free JSONBin.io account:**
+   - Go to https://jsonbin.io/
+   - Sign up for a free account
+
+2. **Create a new bin:**
+   - Click "New Bin"
+   - Set the content to: `{"scores": []}`
+   - Click "Create"
+
+3. **Get your credentials:**
+   - Copy your **Bin ID** from the URL
+   - Go to API Keys and copy your **$2a$10** Master Key
+
+4. **Update game.js:**
+   ```javascript
+   const JSONBIN_ID = 'your-bin-id-here';
+   const JSONBIN_API_KEY = '$2a$10$your-api-key-here';
+   ```
+
+5. **Push to GitHub** - Your global leaderboard is now live!
+
+### Without Setup:
+The game works great with just **localStorage** - scores will be saved on each device separately.
 
 ## 🚀 Deploy to GitHub Pages
 
@@ -59,12 +87,13 @@ The game automatically detects your device:
 - HTML5
 - CSS3 (with animations)
 - Vanilla JavaScript (no dependencies)
-- LocalStorage for local leaderboard persistence
+- **JSONBin.io** for global leaderboard storage
+- LocalStorage for offline backup
 
 ## 📱 Mobile Features
 
 - Responsive design works on all screen sizes
-- Touch-friendly buttons with haptic feedback
+- Touch-friendly buttons
 - Prevents zoom on double-tap
 - Compact layout (no scrolling)
 - Works offline after first load
@@ -81,7 +110,7 @@ The game automatically detects your device:
 
 - `index.html` - Main game page
 - `style.css` - Styling and animations
-- `game.js` - Game logic and leaderboard
+- `game.js` - Game logic and leaderboard (update JSONBin credentials here)
 - `README.md` - This file
 
 ## 🐛 Browser Support
