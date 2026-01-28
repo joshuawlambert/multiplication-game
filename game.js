@@ -60,7 +60,14 @@ async function fetchGlobalLeaderboard() {
         if (!response.ok) throw new Error('Failed to fetch');
         
         const data = await response.json();
-        gameState.globalLeaderboard = data.record.scores || [];
+        const scores = data.record.scores || [];
+        // Normalize platform info for entries missing it
+        for (let e of scores) {
+            if (!('platform' in e)) {
+                e.platform = (e.isMobile ? 'Mobile' : 'Desktop');
+            }
+        }
+        gameState.globalLeaderboard = scores;
         return gameState.globalLeaderboard;
     } catch (error) {
         console.error('Error fetching global leaderboard:', error);
