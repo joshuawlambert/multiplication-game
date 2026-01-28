@@ -20,6 +20,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Inject Secrets (Python)
+        run: python3 scripts/inject-secrets.py
+        env:
+          JSONBIN_ID: ${{ secrets.JSONBIN_ID }}
+          JSONBIN_API_KEY: ${{ secrets.JSONBIN_API_KEY }}
 
       - name: Inject Secrets
         run: |
