@@ -14,6 +14,11 @@ body {
     overflow-x: hidden;
 }
 
+body.mobile-device {
+    height: 100dvh;
+    overflow: hidden;
+}
+
 body.dark-mode {
     background: radial-gradient(circle at 20% 10%, #1c2a4a 0%, transparent 45%),
         radial-gradient(circle at 80% 20%, #3b1b52 0%, transparent 48%),
@@ -958,7 +963,11 @@ h2 {
 }
 
 .mobile-device #game-screen {
-    justify-content: space-between;
+    display: grid;
+    grid-template-rows: auto auto 1fr auto;
+    align-content: stretch;
+    justify-content: stretch;
+    gap: 6px;
 }
 
 .mobile-device .game-header {
@@ -983,8 +992,7 @@ h2 {
 }
 
 .mobile-device .progress-bar {
-    height: 12px;
-    margin-bottom: 8px;
+    display: none;
 }
 
 .mobile-device .mission-row {
@@ -1024,29 +1032,29 @@ h2 {
 }
 
 .mobile-device .question-container {
-    margin-bottom: 5px;
+    margin-bottom: 0;
 }
 
 .mobile-device .question {
-    font-size: 42px;
-    margin-bottom: 8px;
+    font-size: 34px;
+    margin-bottom: 6px;
 }
 
 .mobile-device .answer-box {
-    padding: 10px;
-    min-height: 60px;
+    padding: 8px;
+    min-height: 48px;
     border-radius: 12px;
     border-width: 3px;
 }
 
 .mobile-device .answer-display {
-    font-size: 36px;
+    font-size: 30px;
 }
 
 .mobile-device .feedback {
-    font-size: 24px;
-    height: 30px;
-    margin-bottom: 5px;
+    font-size: 18px;
+    height: 22px;
+    margin-bottom: 0;
 }
 
 .mobile-device .input-hint {
@@ -1070,6 +1078,15 @@ h2 {
     height: 58px;
     font-size: 24px;
     border-radius: 12px;
+}
+
+.mobile-device .numpad-row {
+    width: 100%;
+}
+
+.mobile-device .num-btn {
+    flex: 1;
+    max-width: 92px;
 }
 
 .mobile-device .btn-clear,
