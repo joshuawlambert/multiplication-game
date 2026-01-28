@@ -20,6 +20,7 @@ let gameState = {
 const JSONBIN_ID = 'YOUR_BIN_ID_HERE';
 const JSONBIN_URL = `https://api.jsonbin.io/v3/b/${JSONBIN_ID}`;
 const JSONBIN_API_KEY = '$2a$10$YOUR_API_KEY_HERE';
+const IS_CONFIGURED = JSONBIN_ID !== 'YOUR_BIN_ID_HERE' && !JSONBIN_API_KEY.includes('YOUR_API_KEY');
 
 // Device Detection
 function detectMobile() {
@@ -44,7 +45,7 @@ if (gameState.isMobile) {
 
 // Global Leaderboard Management (JSONBin.io)
 async function fetchGlobalLeaderboard() {
-    if (JSONBIN_ID === 'YOUR_BIN_ID_HERE') {
+    if (!IS_CONFIGURED) {
         console.log('JSONBin not configured yet, using localStorage only');
         return getLocalLeaderboard();
     }
@@ -69,7 +70,7 @@ async function fetchGlobalLeaderboard() {
 }
 
 async function updateGlobalLeaderboard(name, score, time) {
-    if (JSONBIN_ID === 'YOUR_BIN_ID_HERE') {
+    if (!IS_CONFIGURED) {
         console.log('JSONBin not configured, saving to localStorage only');
         return addToLocalLeaderboard(name, score, time);
     }
@@ -492,7 +493,7 @@ async function showLeaderboard() {
     html += '</div>';
     
     // Show connection status
-    if (JSONBIN_ID === 'YOUR_BIN_ID_HERE') {
+    if (!IS_CONFIGURED) {
         html += '<div class="config-notice">⚠️ Global leaderboard not configured yet</div>';
     }
     
