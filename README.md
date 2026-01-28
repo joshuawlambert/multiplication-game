@@ -4,35 +4,46 @@ A fun, interactive multiplication learning game designed for kids aged 7-10. Bui
 
 ## 🌟 Play Now
 
-Visit: `https://yourusername.github.io/multiplication-game/`
+**Live Game:** https://joshuawlambert.github.io/multiplication-game/
 
 ## ✨ Features
 
-- **Kid-Friendly Design** - Colorful, engaging interface with big buttons
-- **Progressive Difficulty** - Starts easy (2×2) and gets harder as you score
-- **Score Tracking** - Points based on difficulty + streak bonuses
-- **Streak System** - Build consecutive correct answers for bonus points
-- **Leaderboard** - Local high scores stored in your browser
-- **On-Screen Numpad** - No keyboard needed, works on tablets/phones
-- **Keyboard Support** - Type answers with your keyboard too
-- **Confetti Celebration** - Party effects for high scores!
+- **🎨 Kid-Friendly Design** - Colorful, engaging interface with big buttons
+- **📱 Mobile Optimized** - No scrolling required, fits perfectly on phone screens
+- **💻 Desktop Support** - Keyboard input for faster gameplay
+- **🎯 Age-Appropriate** - Only 2-number multiplication (1×1 to 12×12)
+- **⭐ Score Tracking** - 10 points per answer + streak bonuses
+- **🔥 Streak System** - 3+ streak = +5pts, 5+ = +10pts, 10+ = +20pts
+- **🏆 Separate Leaderboards** - Mobile and Desktop scores tracked separately
+- **📲 Device Detection** - Automatically adapts to touch or keyboard input
+- **🎉 Confetti Celebration** - Party effects for high scores!
 
 ## 🎯 How to Play
 
 1. Enter your name
-2. Solve multiplication problems shown on screen
-3. Use the numpad or keyboard to enter your answer
-4. Press ✓ or Enter to submit
-5. Build streaks for bonus points (3+ correct = extra stars!)
+2. Solve multiplication problems (e.g., 7 × 8 = ?)
+3. **Mobile:** Tap the on-screen numpad buttons
+4. **Desktop:** Type numbers on your keyboard + press Enter
+5. Build streaks for bonus points!
 6. One wrong answer ends the game
 7. Try to get on the leaderboard!
 
-## 🏗️ Tech Stack
+## 📱 Mobile vs Desktop
 
-- HTML5
-- CSS3 (with animations)
-- Vanilla JavaScript (no dependencies)
-- LocalStorage for leaderboard persistence
+The game automatically detects your device:
+
+**Mobile (Phone/Tablet):**
+- Touch-optimized interface
+- Large tap targets (58-65px buttons)
+- No on-screen keyboard (uses custom numpad)
+- Everything fits on one screen
+
+**Desktop (Computer):**
+- Keyboard support (0-9 keys)
+- Enter to submit, Backspace to delete
+- Larger display
+
+**Leaderboards are separate** - compete with other mobile players or desktop players!
 
 ## 🚀 Deploy to GitHub Pages
 
@@ -43,27 +54,20 @@ Visit: `https://yourusername.github.io/multiplication-game/`
 5. Click Save
 6. Your game will be live at `https://yourusername.github.io/multiplication-game/`
 
-## 📱 Mobile Friendly
+## 🏗️ Tech Stack
+
+- HTML5
+- CSS3 (with animations)
+- Vanilla JavaScript (no dependencies)
+- LocalStorage for local leaderboard persistence
+
+## 📱 Mobile Features
 
 - Responsive design works on all screen sizes
-- Touch-friendly buttons
+- Touch-friendly buttons with haptic feedback
 - Prevents zoom on double-tap
+- Compact layout (no scrolling)
 - Works offline after first load
-
-## 🎨 Customization
-
-Edit `style.css` to change colors:
-- Purple/Blue gradient background
-- Green for correct answers
-- Red for wrong answers
-- Yellow for highlights
-
-## 📁 Files
-
-- `index.html` - Main game page
-- `style.css` - Styling and animations
-- `game.js` - Game logic and leaderboard
-- `README.md` - This file
 
 ## 🎓 Educational Value
 
@@ -72,6 +76,13 @@ Edit `style.css` to change colors:
 - Encourages accuracy over guessing
 - Tracks progress with streaks
 - Makes math practice fun!
+
+## 📁 Files
+
+- `index.html` - Main game page
+- `style.css` - Styling and animations
+- `game.js` - Game logic and leaderboard
+- `README.md` - This file
 
 ## 🐛 Browser Support
 
