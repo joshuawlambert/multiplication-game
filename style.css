@@ -969,6 +969,9 @@ h2 {
     height: 100dvh;
     overflow: hidden;
     padding-bottom: calc(10px + env(safe-area-inset-bottom));
+    position: fixed;
+    inset: 0;
+    max-width: none;
 }
 
 .mobile-device .screen {
@@ -1027,6 +1030,12 @@ h2 {
     flex: 1;
 }
 
+/* Mobile: keep header tiny (Score + Lives only) */
+.mobile-device #game-screen .game-header .stat:nth-child(2),
+.mobile-device #game-screen .game-header .stat:nth-child(3) {
+    display: none;
+}
+
 .mobile-device .progress-bar {
     display: none;
 }
@@ -1036,6 +1045,13 @@ h2 {
     align-items: center;
     gap: 8px;
     margin-bottom: 6px;
+}
+
+/* Mobile: hide mission bar on small screens */
+@media (max-height: 740px) {
+    .mobile-device .mission-row {
+        display: none;
+    }
 }
 
 .mobile-device .mission {
@@ -1107,6 +1123,8 @@ h2 {
     margin-bottom: 5px;
     margin-top: auto;
     padding-bottom: env(safe-area-inset-bottom);
+    width: 100%;
+    max-width: 380px;
 }
 
 .mobile-device .numpad-row {
@@ -1118,6 +1136,21 @@ h2 {
     height: 54px;
     font-size: 24px;
     border-radius: 12px;
+}
+
+@media (max-height: 680px) {
+    .mobile-device .question {
+        font-size: 28px;
+    }
+    .mobile-device .num-btn {
+        width: 46px;
+        height: 46px;
+        font-size: 20px;
+        border-radius: 10px;
+    }
+    .mobile-device .answer-display {
+        font-size: 26px;
+    }
 }
 
 @media (max-height: 720px) {
