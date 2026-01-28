@@ -945,13 +945,14 @@ h2 {
 /* Mobile Optimizations - No Scroll */
 .mobile-device #app {
     padding: 10px;
-    height: 100vh;
+    height: 100dvh;
     overflow: hidden;
+    padding-bottom: calc(10px + env(safe-area-inset-bottom));
 }
 
 .mobile-device .screen {
     padding: 10px;
-    height: 100vh;
+    height: 100dvh;
     overflow: hidden;
     justify-content: flex-start;
 }
@@ -964,14 +965,21 @@ h2 {
     padding: 8px 10px;
     margin-bottom: 8px;
     border-radius: 12px;
+    flex-wrap: nowrap;
+    gap: 6px;
 }
 
 .mobile-device .stat-label {
-    font-size: 10px;
+    font-size: 9px;
 }
 
 .mobile-device .stat-value {
-    font-size: 18px;
+    font-size: 16px;
+}
+
+.mobile-device .stat {
+    min-width: 0;
+    flex: 1;
 }
 
 .mobile-device .progress-bar {
@@ -1004,16 +1012,15 @@ h2 {
 }
 
 .mobile-device .mascot {
-    margin-bottom: 6px;
+    margin-bottom: 4px;
 }
 
 .mobile-device .mascot-face {
-    font-size: 32px;
+    font-size: 26px;
 }
 
 .mobile-device .mascot-bubble {
-    font-size: 12px;
-    padding: 8px 10px;
+    display: none;
 }
 
 .mobile-device .question-container {
@@ -1043,13 +1050,15 @@ h2 {
 }
 
 .mobile-device .input-hint {
-    font-size: 12px;
-    margin-bottom: 5px;
+    display: none;
+    margin-bottom: 0;
 }
 
 .mobile-device .numpad {
     gap: 6px;
     margin-bottom: 5px;
+    margin-top: auto;
+    padding-bottom: env(safe-area-inset-bottom);
 }
 
 .mobile-device .numpad-row {
@@ -1057,8 +1066,8 @@ h2 {
 }
 
 .mobile-device .num-btn {
-    width: 65px;
-    height: 65px;
+    width: 58px;
+    height: 58px;
     font-size: 24px;
     border-radius: 12px;
 }
