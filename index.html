@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Math Blaster - Multiplication Game</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="app">
+        <!-- Menu Screen -->
+        <div id="menu-screen" class="screen active">
+            <div class="logo">
+                <span class="math">MATH</span>
+                <span class="blaster">BLASTER</span>
+                <div class="stars">⭐⭐⭐</div>
+            </div>
+            
+            <div class="menu-buttons">
+                <button class="btn btn-play" onclick="showScreen('name-screen')">
+                    🚀 PLAY GAME
+                </button>
+                <button class="btn btn-leaderboard" onclick="showLeaderboard()">
+                    🏆 LEADERBOARD
+                </button>
+                <button class="btn btn-help" onclick="showScreen('help-screen')">
+                    ❓ HOW TO PLAY
+                </button>
+            </div>
+        </div>
+
+        <!-- Name Entry Screen -->
+        <div id="name-screen" class="screen">
+            <h2>🌟 What's Your Name? 🌟</h2>
+            <input type="text" id="player-name" placeholder="Type your name..." maxlength="15">
+            <div class="on-screen-keyboard" id="name-keyboard">
+                <div class="kb-row">
+                    <button onclick="addToName('Q')">Q</button>
+                    <button onclick="addToName('W')">W</button>
+                    <button onclick="addToName('E')">E</button>
+                    <button onclick="addToName('R')">R</button>
+                    <button onclick="addToName('T')">T</button>
+                    <button onclick="addToName('Y')">Y</button>
+                    <button onclick="addToName('U')">U</button>
+                    <button onclick="addToName('I')">I</button>
+                    <button onclick="addToName('O')">O</button>
+                    <button onclick="addToName('P')">P</button>
+                </div>
+                <div class="kb-row">
+                    <button onclick="addToName('A')">A</button>
+                    <button onclick="addToName('S')">S</button>
+                    <button onclick="addToName('D')">D</button>
+                    <button onclick="addToName('F')">F</button>
+                    <button onclick="addToName('G')">G</button>
+                    <button onclick="addToName('H')">H</button>
+                    <button onclick="addToName('J')">J</button>
+                    <button onclick="addToName('K')">K</button>
+                    <button onclick="addToName('L')">L</button>
+                </div>
+                <div class="kb-row">
+                    <button onclick="addToName('Z')">Z</button>
+                    <button onclick="addToName('X')">X</button>
+                    <button onclick="addToName('C')">C</button>
+                    <button onclick="addToName('V')">V</button>
+                    <button onclick="addToName('B')">B</button>
+                    <button onclick="addToName('N')">N</button>
+                    <button onclick="addToName('M')">M</button>
+                </div>
+                <div class="kb-row">
+                    <button class="btn-space" onclick="addToName(' ')">SPACE</button>
+                    <button class="btn-backspace" onclick="backspaceName()">⌫</button>
+                </div>
+            </div>
+            <button class="btn btn-play" onclick="startGame()">🎮 START!</button>
+            <button class="btn btn-back" onclick="showScreen('menu-screen')">← BACK</button>
+        </div>
+
+        <!-- Game Screen -->
+        <div id="game-screen" class="screen">
+            <div class="game-header">
+                <div class="stat">
+                    <span class="stat-label">⭐ Score</span>
+                    <span id="score" class="stat-value">0</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">⏱️ Time</span>
+                    <span id="timer" class="stat-value">0:00</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">🔥 Streak</span>
+                    <span id="streak" class="stat-value">0</span>
+                </div>
+            </div>
+
+            <div class="progress-bar">
+                <div id="progress-fill" class="progress-fill"></div>
+            </div>
+
+            <div class="question-container">
+                <div id="question" class="question">?</div>
+                <div class="answer-box">
+                    <span id="answer-display" class="answer-display">?</span>
+                </div>
+            </div>
+
+            <div id="feedback" class="feedback"></div>
+
+            <div class="numpad">
+                <div class="numpad-row">
+                    <button class="num-btn" onclick="addDigit(1)">1</button>
+                    <button class="num-btn" onclick="addDigit(2)">2</button>
+                    <button class="num-btn" onclick="addDigit(3)">3</button>
+                </div>
+                <div class="numpad-row">
+                    <button class="num-btn" onclick="addDigit(4)">4</button>
+                    <button class="num-btn" onclick="addDigit(5)">5</button>
+                    <button class="num-btn" onclick="addDigit(6)">6</button>
+                </div>
+                <div class="numpad-row">
+                    <button class="num-btn" onclick="addDigit(7)">7</button>
+                    <button class="num-btn" onclick="addDigit(8)">8</button>
+                    <button class="num-btn" onclick="addDigit(9)">9</button>
+                </div>
+                <div class="numpad-row">
+                    <button class="num-btn btn-clear" onclick="clearAnswer()">C</button>
+                    <button class="num-btn" onclick="addDigit(0)">0</button>
+                    <button class="num-btn btn-submit" onclick="submitAnswer()">✓</button>
+                </div>
+            </div>
+
+            <button class="btn btn-quit" onclick="quitGame()">🏠 Quit</button>
+        </div>
+
+        <!-- Game Over Screen -->
+        <div id="gameover-screen" class="screen">
+            <div id="confetti-container"></div>
+            <h1 id="gameover-title">🎉 GAME OVER! 🎉</h1>
+            
+            <div class="final-stats">
+                <div class="final-stat">
+                    <span class="final-label">Final Score</span>
+                    <span id="final-score" class="final-value">0</span>
+                </div>
+                <div class="final-stat">
+                    <span class="final-label">Correct Answers</span>
+                    <span id="final-correct" class="final-value">0</span>
+                </div>
+                <div class="final-stat">
+                    <span class="final-label">Time Played</span>
+                    <span id="final-time" class="final-value">0:00</span>
+                </div>
+                <div class="final-stat">
+                    <span class="final-label">Best Streak</span>
+                    <span id="final-streak" class="final-value">0</span>
+                </div>
+            </div>
+
+            <div id="rank-message" class="rank-message"></div>
+
+            <button class="btn btn-play" onclick="playAgain()">🔄 PLAY AGAIN</button>
+            <button class="btn btn-leaderboard" onclick="showLeaderboard()">🏆 LEADERBOARD</button>
+            <button class="btn btn-back" onclick="showScreen('menu-screen')">🏠 MAIN MENU</button>
+        </div>
+
+        <!-- Leaderboard Screen -->
+        <div id="leaderboard-screen" class="screen">
+            <h2>🏆 HIGH SCORES 🏆</h2>
+            <div id="leaderboard-list" class="leaderboard-list"></div>
+            <button class="btn btn-back" onclick="showScreen('menu-screen')">← BACK TO MENU</button>
+        </div>
+
+        <!-- Help Screen -->
+        <div id="help-screen" class="screen">
+            <h2>❓ HOW TO PLAY ❓</h2>
+            <div class="help-content">
+                <div class="help-item">
+                    <span class="help-icon">🎯</span>
+                    <p>Solve multiplication problems as fast as you can!</p>
+                </div>
+                <div class="help-item">
+                    <span class="help-icon">🔢</span>
+                    <p>Use the numpad buttons or your keyboard to enter answers.</p>
+                </div>
+                <div class="help-item">
+                    <span class="help-icon">⭐</span>
+                    <p>Each correct answer gives you points based on difficulty.</p>
+                </div>
+                <div class="help-item">
+                    <span class="help-icon">🔥</span>
+                    <p>Build a streak for bonus points! Get 3 in a row for extra stars!</p>
+                </div>
+                <div class="help-item">
+                    <span class="help-icon">⚡</span>
+                    <p>Questions get harder as your score goes up!</p>
+                </div>
+                <div class="help-item">
+                    <span class="help-icon">❌</span>
+                    <p>One wrong answer ends the game. Try to beat your high score!</p>
+                </div>
+            </div>
+            <button class="btn btn-back" onclick="showScreen('menu-screen')">← BACK</button>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
