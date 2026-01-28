@@ -164,25 +164,23 @@ async function getMergedLeaderboard() {
     const global = await fetchGlobalLeaderboard();
     const local = getLocalLeaderboard();
     
-    // Merge and deduplicate (prefer global scores)
-    const seen = new Set();
-    const merged = [];
+    // If global data is available (JSONBin configured and fetch succeeded), show only global
+    if (global && global.length > 0) {
+        // ensure deterministic top 10 order
+        const sorted = global.slice().sort((a, b) => {
+            if (b.score !== a.score) return b.score - a.score;
+            return a.time - b.time;
+        });
+        return sorted.slice(0, 10);
+    }
     
-    [...global, ...local].forEach(entry => {
-        const key = `${entry.name}-${entry.score}-${entry.time}`;
-        if (!seen.has(key)) {
-            seen.add(key);
-            merged.push(entry);
-        }
-    });
-    
-    // Sort and limit
-    merged.sort((a, b) => {
+    // Fallback to local leaderboard only
+    if (!local || local.length === 0) return [];
+    local.sort((a, b) => {
         if (b.score !== a.score) return b.score - a.score;
         return a.time - b.time;
     });
-    
-    return merged.slice(0, 10);
+    return local.slice(0, 10);
 }
 
 function getRank(score, time) {
