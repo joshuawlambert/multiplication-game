@@ -92,7 +92,8 @@ async function updateGlobalLeaderboard(name, score, time) {
             score: score,
             time: time,
             date: new Date().toISOString(),
-            isMobile: gameState.isMobile
+            isMobile: gameState.isMobile,
+            platform: gameState.isMobile ? 'Mobile' : 'Desktop'
         });
         
         // Sort by score (descending), then by time (ascending)
