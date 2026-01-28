@@ -5,13 +5,24 @@ let gameState = {
     bestStreak: 0,
     correct: 0,
     wrong: 0,
+    lives: 3,
+    level: 1,
+    xp: 0,
     currentAnswer: 0,
     playerAnswer: '',
     startTime: null,
+    questionStartTime: null,
     timerInterval: null,
     playerName: '',
     isMobile: false,
-    globalLeaderboard: []
+    globalLeaderboard: [],
+    power: 0,
+    powerTurns: 0,
+    mission: null,
+    settings: {
+        sound: true,
+        table: null
+    }
 };
 
 // JSONBin.io Configuration
@@ -20,7 +31,10 @@ let gameState = {
 const JSONBIN_ID = 'YOUR_BIN_ID_HERE';
 const JSONBIN_URL = `https://api.jsonbin.io/v3/b/${JSONBIN_ID}`;
 const JSONBIN_API_KEY = '$2a$10$YOUR_API_KEY_HERE';
-const IS_CONFIGURED = JSONBIN_API_KEY !== '$2a$10$PLACEHOLDER';
+const IS_CONFIGURED = JSONBIN_ID !== 'YOUR_BIN_ID_HERE' && JSONBIN_API_KEY !== '$2a$10$YOUR_API_KEY_HERE';
+
+const SETTINGS_KEY = 'mathBlasterSettings';
+const LOCAL_SCORES_KEY = 'mathBlasterGlobalScores';
 
 // Device Detection
 function detectMobile() {
@@ -43,11 +57,80 @@ if (gameState.isMobile) {
     document.body.classList.remove('mobile-device');
 }
 
+function loadSettings() {
+    try {
+        const raw = localStorage.getItem(SETTINGS_KEY);
+        if (!raw) return;
+        const parsed = JSON.parse(raw);
+        if (typeof parsed.sound === 'boolean') gameState.settings.sound = parsed.sound;
+        if (parsed.table === null || parsed.table === undefined || parsed.table === '') {
+            gameState.settings.table = null;
+        } else {
+            const t = Number(parsed.table);
+            gameState.settings.table = Number.isFinite(t) ? t : null;
+        }
+    } catch {
+        // ignore
+    }
+}
+
+function saveSettings() {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify({
+        sound: !!gameState.settings.sound,
+        table: gameState.settings.table === null ? '' : String(gameState.settings.table)
+    }));
+}
+
+function applySettingsToUI() {
+    const soundEl = document.getElementById('setting-sound');
+    const tableEl = document.getElementById('setting-table');
+    if (soundEl) soundEl.checked = !!gameState.settings.sound;
+    if (tableEl) tableEl.value = gameState.settings.table === null ? '' : String(gameState.settings.table);
+}
+
+// Sound (simple WebAudio beeps)
+let audioCtx = null;
+function ensureAudio() {
+    if (!gameState.settings.sound) return null;
+    if (audioCtx) return audioCtx;
+    try {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        return audioCtx;
+    } catch {
+        return null;
+    }
+}
+
+function beep(type) {
+    if (!gameState.settings.sound) return;
+    const ctx = ensureAudio();
+    if (!ctx) return;
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.connect(g);
+    g.connect(ctx.destination);
+
+    const now = ctx.currentTime;
+    const base = type === 'correct' ? 660 : type === 'power' ? 880 : 220;
+    o.frequency.setValueAtTime(base, now);
+    o.type = 'triangle';
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.exponentialRampToValueAtTime(0.12, now + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
+    o.start(now);
+    o.stop(now + 0.2);
+}
+
+function tinyHaptic() {
+    if (!gameState.isMobile) return;
+    if (navigator.vibrate) navigator.vibrate(15);
+}
+
 // Global Leaderboard Management (JSONBin.io)
 async function fetchGlobalLeaderboard() {
     if (!IS_CONFIGURED) {
         console.log('JSONBin not configured yet, using localStorage only');
-        return getLocalLeaderboard();
+        return null;
     }
     
     try {
@@ -71,8 +154,7 @@ async function fetchGlobalLeaderboard() {
         return gameState.globalLeaderboard;
     } catch (error) {
         console.error('Error fetching global leaderboard:', error);
-        // Fallback to localStorage
-        return getLocalLeaderboard();
+        return null;
     }
 }
 
@@ -84,7 +166,9 @@ async function updateGlobalLeaderboard(name, score, time) {
     
     try {
         // Get current scores
-        const currentScores = await fetchGlobalLeaderboard();
+        const fetched = await fetchGlobalLeaderboard();
+        if (!Array.isArray(fetched)) throw new Error('Global leaderboard unavailable');
+        const currentScores = fetched;
         
         // Add new score
         currentScores.push({
@@ -132,12 +216,19 @@ async function updateGlobalLeaderboard(name, score, time) {
 
 // Local Leaderboard Management (LocalStorage)
 function getLocalLeaderboard() {
-    const stored = localStorage.getItem('mathBlasterGlobalScores');
+    const stored = localStorage.getItem(LOCAL_SCORES_KEY);
     return stored ? JSON.parse(stored) : [];
 }
 
 function saveLocalLeaderboard(scores) {
-    localStorage.setItem('mathBlasterGlobalScores', JSON.stringify(scores));
+    localStorage.setItem(LOCAL_SCORES_KEY, JSON.stringify(scores));
+}
+
+function resetLocalScores() {
+    localStorage.removeItem(LOCAL_SCORES_KEY);
+    // Friendly little confirmation in the mascot bubble if present
+    const bubble = document.getElementById('mascot-bubble');
+    if (bubble) bubble.textContent = 'Local scores cleared! Global scores stay safe.';
 }
 
 function addToLocalLeaderboard(name, score, time) {
@@ -236,8 +327,15 @@ function startGame() {
     gameState.bestStreak = 0;
     gameState.correct = 0;
     gameState.wrong = 0;
+    gameState.lives = 3;
+    gameState.level = 1;
+    gameState.xp = 0;
     gameState.playerAnswer = '';
     gameState.startTime = Date.now();
+    gameState.questionStartTime = Date.now();
+    gameState.power = 0;
+    gameState.powerTurns = 0;
+    gameState.mission = pickMission();
     
     // Re-detect device
     gameState.isMobile = detectMobile();
@@ -256,6 +354,8 @@ function startGame() {
     
     // Show game screen
     showScreen('game-screen');
+
+    setMascot('🚀', `Hi ${gameState.playerName}! Let's play!`);
 }
 
 function updateDeviceUI() {
@@ -279,14 +379,96 @@ function updateDeviceUI() {
     }
 }
 
+function setMascot(face, text) {
+    const f = document.getElementById('mascot-face');
+    const b = document.getElementById('mascot-bubble');
+    if (f) f.textContent = face;
+    if (b) b.textContent = text;
+}
+
+function updateLivesUI() {
+    const el = document.getElementById('lives');
+    if (!el) return;
+    const hearts = Math.max(0, Math.min(3, gameState.lives));
+    el.textContent = '❤'.repeat(hearts) + '♡'.repeat(3 - hearts);
+}
+
+function updatePowerUI() {
+    const fill = document.getElementById('power-fill');
+    if (!fill) return;
+    const pct = Math.max(0, Math.min(100, gameState.power));
+    fill.style.width = pct + '%';
+    fill.classList.toggle('active', gameState.powerTurns > 0);
+}
+
+const MISSION_POOL = [
+    { type: 'streak', target: 3, text: 'Get a 3-streak!' },
+    { type: 'streak', target: 5, text: 'Get a 5-streak!' },
+    { type: 'fast', target: 4, text: 'Answer in under 4 seconds!' },
+    { type: 'correct', target: 8, text: 'Get 8 correct answers!' },
+    { type: 'score', target: 120, text: 'Reach 120 points!' }
+];
+
+function pickMission() {
+    const m = MISSION_POOL[Math.floor(Math.random() * MISSION_POOL.length)];
+    return { ...m, done: false };
+}
+
+function updateMissionUI() {
+    const el = document.getElementById('mission');
+    if (!el || !gameState.mission) return;
+    if (gameState.mission.done) {
+        el.textContent = '🏅 Mission complete! Keep going!';
+        el.classList.add('done');
+        return;
+    }
+    el.classList.remove('done');
+    el.textContent = `🎯 Mission: ${gameState.mission.text}`;
+}
+
+function checkMission({ lastAnswerSeconds }) {
+    const m = gameState.mission;
+    if (!m || m.done) return;
+
+    if (m.type === 'streak' && gameState.streak >= m.target) m.done = true;
+    if (m.type === 'fast' && typeof lastAnswerSeconds === 'number' && lastAnswerSeconds <= m.target) m.done = true;
+    if (m.type === 'correct' && gameState.correct >= m.target) m.done = true;
+    if (m.type === 'score' && gameState.score >= m.target) m.done = true;
+
+    if (m.done) {
+        gameState.score += 30;
+        showFeedback('correct', '🏅 MISSION COMPLETE! +30');
+        setMascot('🛸', 'Nice! You earned a mission bonus!');
+        beep('power');
+        createConfetti();
+    }
+}
+
 // Generate 2-number multiplication (1-12)
 function generateQuestion() {
-    const num1 = Math.floor(Math.random() * 12) + 1;
-    const num2 = Math.floor(Math.random() * 12) + 1;
+    let num1 = Math.floor(Math.random() * 12) + 1;
+    let num2 = Math.floor(Math.random() * 12) + 1;
+
+    const focus = gameState.settings.table;
+    if (focus && focus >= 2 && focus <= 12) {
+        // Pick a random partner for the focused table
+        const partner = Math.floor(Math.random() * 12) + 1;
+        if (Math.random() < 0.5) {
+            num1 = focus;
+            num2 = partner;
+        } else {
+            num1 = partner;
+            num2 = focus;
+        }
+    }
     
     gameState.currentAnswer = num1 * num2;
     document.getElementById('question').textContent = `${num1} × ${num2} =`;
+    gameState.questionStartTime = Date.now();
     clearAnswer();
+
+    updateMissionUI();
+    updatePowerUI();
 }
 
 function addDigit(digit) {
@@ -321,44 +503,85 @@ function submitAnswer() {
 }
 
 function handleCorrect() {
+    const now = Date.now();
+    const seconds = Math.max(0, (now - (gameState.questionStartTime || now)) / 1000);
+
+    // Base points
     let points = 10;
-    
+
+    // Speed bonus keeps things exciting
+    if (seconds <= 3) points += 8;
+    else if (seconds <= 5) points += 4;
+
+    // Streak
     gameState.streak++;
     if (gameState.streak > gameState.bestStreak) {
         gameState.bestStreak = gameState.streak;
     }
-    
     if (gameState.streak >= 3) points += 5;
     if (gameState.streak >= 5) points += 5;
     if (gameState.streak >= 10) points += 10;
-    
+
+    // Power mode: double points for a few turns
+    if (gameState.powerTurns > 0) {
+        points *= 2;
+        gameState.powerTurns = Math.max(0, gameState.powerTurns - 1);
+        if (gameState.powerTurns === 0) {
+            setMascot('🚀', 'Power mode used up! Fill the bar again!');
+        }
+    }
+
     gameState.score += points;
     gameState.correct++;
-    
-    let message = '✓ CORRECT!';
-    if (gameState.streak >= 10) message = '🔥 UNSTOPPABLE!';
-    else if (gameState.streak >= 5) message = '⚡ AMAZING!';
-    else if (gameState.streak >= 3) message = '🔥 AWESOME!';
-    
-    showFeedback('correct', message);
+
+    // Fill power bar
+    gameState.power = Math.min(100, gameState.power + 20);
+    if (gameState.power >= 100) {
+        gameState.power = 0;
+        gameState.powerTurns = 5;
+        showFeedback('correct', '✨ POWER MODE! Next 5 = DOUBLE!');
+        setMascot('✨', 'POWER MODE! Double points!');
+        beep('power');
+    } else {
+        const cheer = [
+            '✅ Nailed it!',
+            '🌟 Great job!',
+            '🚀 Blast off!',
+            '💥 BOOM! Correct!',
+            '🧠 Smart move!'
+        ];
+        showFeedback('correct', cheer[Math.floor(Math.random() * cheer.length)]);
+        setMascot('😄', seconds <= 3 ? 'Super fast!' : 'Nice one!');
+        beep('correct');
+    }
+
+    tinyHaptic();
+    checkMission({ lastAnswerSeconds: seconds });
+
     updateStats();
     updateProgressBar();
-    
+
     setTimeout(() => {
         generateQuestion();
-    }, 800);
+    }, 700);
 }
 
 function handleWrong() {
     gameState.wrong++;
     gameState.streak = 0;
-    
-    showFeedback('wrong', `✗ The answer was ${gameState.currentAnswer}`);
+    gameState.lives = Math.max(0, gameState.lives - 1);
+
+    showFeedback('wrong', `💥 Oops! It was ${gameState.currentAnswer}`);
+    setMascot('😵', gameState.lives > 0 ? 'You got this! Try the next one!' : 'Good game!');
+    beep('wrong');
+    tinyHaptic();
+
     updateStats();
-    
+
     setTimeout(() => {
-        endGame();
-    }, 1500);
+        if (gameState.lives > 0) generateQuestion();
+        else endGame();
+    }, 1100);
 }
 
 function showFeedback(type, message) {
@@ -376,6 +599,9 @@ function hideFeedback() {
 function updateStats() {
     document.getElementById('score').textContent = gameState.score;
     document.getElementById('streak').textContent = gameState.streak;
+    updateLivesUI();
+    updateMissionUI();
+    updatePowerUI();
 }
 
 function updateTimer() {
@@ -467,25 +693,39 @@ function playAgain() {
 // Leaderboard Screen
 async function showLeaderboard() {
     const listElement = document.getElementById('leaderboard-list');
+    // Re-detect so the leaderboard matches the device you're currently on
+    gameState.isMobile = detectMobile();
+    updateDeviceUI();
+
     const currentPlatform = gameState.isMobile ? 'Mobile' : 'Desktop';
     const otherPlatform = currentPlatform === 'Mobile' ? 'Desktop' : 'Mobile';
 
-    // Helper to collect scores for a given platform from both global and local sources
+    listElement.innerHTML = '<div class="loading">Loading scores...</div>';
+    showScreen('leaderboard-screen');
+
+    let source = 'local';
+    let baseScores = getLocalLeaderboard();
+    if (IS_CONFIGURED) {
+        const fetched = await fetchGlobalLeaderboard();
+        // If the fetch succeeded and returned scores, prefer global
+        if (Array.isArray(fetched)) {
+            baseScores = fetched;
+            source = 'global';
+        }
+    }
+
+    // Helper to collect top scores for a given platform from current source
     function collectScoresForPlatform(platform) {
-        const fromGlobal = (gameState.globalLeaderboard || []).filter(e => {
+        const merged = (baseScores || []).filter(e => {
             const plat = e.platform || (e.isMobile ? 'Mobile' : 'Desktop');
             return plat === platform;
         });
-        const fromLocal = getLocalLeaderboard().filter(e => {
-            const plat = e.platform || (e.isMobile ? 'Mobile' : 'Desktop');
-            return plat === platform;
-        });
-        const merged = [...fromGlobal, ...fromLocal];
         // Deduplicate by name-score-time
         const seen = new Set();
         const uniq = [];
         for (const s of merged) {
-            const key = `${s.name}-${s.score}-${s.time}-${s.platform}`;
+            const plat = s.platform || (s.isMobile ? 'Mobile' : 'Desktop');
+            const key = `${s.name}-${s.score}-${s.time}-${plat}`;
             if (!seen.has(key)) {
                 seen.add(key);
                 uniq.push(s);
@@ -522,6 +762,8 @@ async function showLeaderboard() {
     let html = '';
     html += `<div class="leaderboard-section"><h3>${currentPlatform} Scores</h3>${renderList(currentList)}</div>`;
     html += `<div class="leaderboard-section other-device"><h3>${otherPlatform} Scores</h3>${renderList(otherList)}</div>`;
+
+    html += `<div class="config-notice">Source: ${source === 'global' ? '🌍 Global (JSONBin)' : '📦 Local (this device)'}</div>`;
     
     // Show network/config notice if not configured
     if (!IS_CONFIGURED) {
@@ -567,7 +809,29 @@ window.addEventListener('resize', () => {
 
 // Initialize UI on load
 document.addEventListener('DOMContentLoaded', () => {
+    loadSettings();
     updateDeviceUI();
+    applySettingsToUI();
+
+    const soundEl = document.getElementById('setting-sound');
+    if (soundEl) {
+        soundEl.addEventListener('change', () => {
+            gameState.settings.sound = !!soundEl.checked;
+            saveSettings();
+            if (gameState.settings.sound) beep('correct');
+        });
+    }
+
+    const tableEl = document.getElementById('setting-table');
+    if (tableEl) {
+        tableEl.addEventListener('change', () => {
+            const v = tableEl.value;
+            gameState.settings.table = v ? Number(v) : null;
+            saveSettings();
+            setMascot('🧠', gameState.settings.table ? `Practice ×${gameState.settings.table}!` : 'Mixed mode!');
+        });
+    }
+
     // Pre-fetch global leaderboard
     fetchGlobalLeaderboard();
 });

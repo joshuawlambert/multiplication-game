@@ -24,6 +24,9 @@
                 <button class="btn btn-leaderboard" onclick="showLeaderboard()">
                     🏆 LEADERBOARD
                 </button>
+                <button class="btn btn-help" onclick="showScreen('settings-screen')">
+                    ⚙️ SETTINGS
+                </button>
                 <button class="btn btn-help" onclick="showScreen('help-screen')">
                     ❓ HOW TO PLAY
                 </button>
@@ -91,6 +94,23 @@
                     <span class="stat-label">🔥 Streak</span>
                     <span id="streak" class="stat-value">0</span>
                 </div>
+                <div class="stat">
+                    <span class="stat-label">❤️ Lives</span>
+                    <span id="lives" class="stat-value">❤❤❤</span>
+                </div>
+            </div>
+
+            <div class="mission-row">
+                <div id="mission" class="mission">🎯 Mission: Get 3 correct in a row!</div>
+                <div class="power">
+                    <span class="power-label">✨ Power</span>
+                    <div class="power-bar"><div id="power-fill" class="power-fill"></div></div>
+                </div>
+            </div>
+
+            <div class="mascot" aria-hidden="true">
+                <div id="mascot-face" class="mascot-face">🚀</div>
+                <div id="mascot-bubble" class="mascot-bubble">Let's blast some answers!</div>
             </div>
 
             <div class="progress-bar">
@@ -173,6 +193,46 @@
             <button class="btn btn-back" onclick="showScreen('menu-screen')">← BACK TO MENU</button>
         </div>
 
+        <!-- Settings Screen -->
+        <div id="settings-screen" class="screen">
+            <h2>⚙️ SETTINGS ⚙️</h2>
+
+            <div class="settings-card">
+                <div class="setting">
+                    <div class="setting-title">🔊 Sound</div>
+                    <label class="switch">
+                        <input id="setting-sound" type="checkbox" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div class="setting">
+                    <div class="setting-title">🎯 Practice Mode</div>
+                    <div class="setting-desc">Mixed (random) or focus on a single times table</div>
+                    <select id="setting-table" class="setting-select">
+                        <option value="">Mixed (1-12)</option>
+                        <option value="2">Focus: ×2</option>
+                        <option value="3">Focus: ×3</option>
+                        <option value="4">Focus: ×4</option>
+                        <option value="5">Focus: ×5</option>
+                        <option value="6">Focus: ×6</option>
+                        <option value="7">Focus: ×7</option>
+                        <option value="8">Focus: ×8</option>
+                        <option value="9">Focus: ×9</option>
+                        <option value="10">Focus: ×10</option>
+                        <option value="11">Focus: ×11</option>
+                        <option value="12">Focus: ×12</option>
+                    </select>
+                </div>
+
+                <div class="setting small">
+                    <button class="btn btn-play" onclick="resetLocalScores()">🧹 Clear Local Scores</button>
+                </div>
+            </div>
+
+            <button class="btn btn-back" onclick="showScreen('menu-screen')">← BACK</button>
+        </div>
+
         <!-- Help Screen -->
         <div id="help-screen" class="screen">
             <h2>❓ HOW TO PLAY ❓</h2>
@@ -191,19 +251,23 @@
                 </div>
                 <div class="help-item">
                     <span class="help-icon">⭐</span>
-                    <p>Each correct answer gives you 10 points. Build streaks for bonuses!</p>
+                    <p>Each correct answer gives you points. Go fast for a speed bonus!</p>
                 </div>
                 <div class="help-item">
                     <span class="help-icon">🔥</span>
-                    <p>3+ streak = +5 points | 5+ streak = +10 points | 10+ streak = +20 points!</p>
+                    <p>Streak bonuses: 3+ = +5 | 5+ = +10 | 10+ = +20</p>
                 </div>
                 <div class="help-item">
-                    <span class="help-icon">🎯</span>
-                    <p>Practice your times tables (1×1 to 12×12). One wrong answer ends the game!</p>
+                    <span class="help-icon">❤️</span>
+                    <p>You get 3 lives. A wrong answer costs a life, then you keep going!</p>
                 </div>
                 <div class="help-item">
-                    <span class="help-icon">❌</span>
-                    <p>One wrong answer ends the game. Try to beat your high score!</p>
+                    <span class="help-icon">✨</span>
+                    <p>Fill the Power bar to activate POWER MODE (double points for 5 answers)!</p>
+                </div>
+                <div class="help-item">
+                    <span class="help-icon">🏅</span>
+                    <p>Complete Missions for bonus points and celebrations!</p>
                 </div>
             </div>
             <button class="btn btn-back" onclick="showScreen('menu-screen')">← BACK</button>

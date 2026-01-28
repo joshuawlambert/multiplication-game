@@ -12,8 +12,11 @@ A fun, interactive multiplication learning game designed for kids aged 7-10. Bui
 - **📱 Mobile Optimized** - No scrolling required, fits perfectly on phone screens
 - **💻 Desktop Support** - Keyboard input for faster gameplay
 - **🎯 Age-Appropriate** - Only 2-number multiplication (1×1 to 12×12)
-- **⭐ Score Tracking** - 10 points per answer + streak bonuses
+- **❤️ 3 Lives** - A wrong answer costs a heart, then you keep going
+- **⭐ Score Tracking** - Points + speed bonus + streak bonuses
 - **🔥 Streak System** - 3+ streak = +5pts, 5+ = +10pts, 10+ = +20pts
+- **✨ Power Mode** - Fill the bar to get 5 double-point answers
+- **🏅 Missions** - Quick goals for bonus points and celebrations
 - **🏆 GLOBAL Leaderboard** - Scores sync across ALL devices worldwide!
 - **📲 Device Detection** - Automatically adapts to touch or keyboard input
 - **🎉 Confetti Celebration** - Party effects for high scores!
@@ -25,7 +28,7 @@ A fun, interactive multiplication learning game designed for kids aged 7-10. Bui
 3. **Mobile:** Tap the on-screen numpad buttons
 4. **Desktop:** Type numbers on your keyboard + press Enter
 5. Build streaks for bonus points!
-6. One wrong answer ends the game
+6. You have 3 lives — keep going after mistakes
 7. Try to get on the **global leaderboard**!
 
 ## 📱 Mobile vs Desktop
