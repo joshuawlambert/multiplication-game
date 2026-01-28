@@ -20,7 +20,7 @@ let gameState = {
 const JSONBIN_ID = 'YOUR_BIN_ID_HERE';
 const JSONBIN_URL = `https://api.jsonbin.io/v3/b/${JSONBIN_ID}`;
 const JSONBIN_API_KEY = '$2a$10$YOUR_API_KEY_HERE';
-const IS_CONFIGURED = JSONBIN_ID !== 'YOUR_BIN_ID_HERE' && !JSONBIN_API_KEY.includes('YOUR_API_KEY');
+const IS_CONFIGURED = JSONBIN_API_KEY !== '$2a$10$PLACEHOLDER';
 
 // Device Detection
 function detectMobile() {
