@@ -17,7 +17,7 @@ A fun, interactive multiplication learning game designed for kids aged 7-10. Bui
 - **🔥 Streak System** - 3+ streak = +5pts, 5+ = +10pts, 10+ = +20pts
 - **✨ Power Mode** - Fill the bar to get 5 double-point answers
 - **🏅 Missions** - Quick goals for bonus points and celebrations
-- **🏆 GLOBAL Leaderboard** - Scores sync across ALL devices worldwide!
+- **🏆 Global Leaderboard** - Scores sync across all devices (JSONBin)
 - **📲 Device Detection** - Automatically adapts to touch or keyboard input
 - **🎉 Confetti Celebration** - Party effects for high scores!
 
@@ -83,7 +83,7 @@ This game uses **JSONBin.io** for a shared global leaderboard that works across 
 The secrets are automatically injected during the build process and **never exposed** in your public code!
 
 ### Without Setup:
-The game works great with just **localStorage** - scores will be saved on each device separately.
+The game still plays, but the **leaderboard will not save** until JSONBin is configured.
 
 ## 🚀 Deploy to GitHub Pages
 
@@ -112,7 +112,6 @@ The game works great with just **localStorage** - scores will be saved on each d
 - CSS3 (with animations)
 - Vanilla JavaScript (no dependencies)
 - **JSONBin.io** for global leaderboard storage
-- LocalStorage for offline backup
 
 ## 📱 Mobile Features
 

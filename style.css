@@ -14,6 +14,12 @@ body {
     overflow-x: hidden;
 }
 
+body.dark-mode {
+    background: radial-gradient(circle at 20% 10%, #1c2a4a 0%, transparent 45%),
+        radial-gradient(circle at 80% 20%, #3b1b52 0%, transparent 48%),
+        linear-gradient(135deg, #0b1020 0%, #0f172a 55%, #111827 100%);
+}
+
 #app {
     width: 100%;
     max-width: 600px;
@@ -21,6 +27,97 @@ body {
     background: #fff;
     position: relative;
     overflow: hidden;
+}
+
+body.dark-mode #app {
+    background: #0b1220;
+    color: #e9ecef;
+}
+
+body.dark-mode #app:before {
+    opacity: 0.25;
+}
+
+body.dark-mode #app:after {
+    opacity: 0.18;
+}
+
+body.dark-mode h2 {
+    color: #e9ecef;
+}
+
+body.dark-mode .leaderboard-item,
+body.dark-mode .help-item,
+body.dark-mode .final-stat,
+body.dark-mode .settings-card,
+body.dark-mode .mascot-bubble,
+body.dark-mode .answer-box {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.12);
+    color: #e9ecef;
+}
+
+body.dark-mode .help-item p,
+body.dark-mode .final-label,
+body.dark-mode .setting-desc {
+    color: rgba(233, 236, 239, 0.8);
+}
+
+body.dark-mode .question {
+    color: #f1f3f5;
+    text-shadow: 2px 2px 0 rgba(0,0,0,0.35);
+}
+
+body.dark-mode .answer-display {
+    color: #f1f3f5;
+}
+
+body.dark-mode .answer-display.has-value {
+    color: #74c0fc;
+}
+
+body.dark-mode .mission {
+    background: rgba(250, 176, 5, 0.14);
+    border-color: rgba(250, 176, 5, 0.35);
+    color: #ffe066;
+}
+
+body.dark-mode .mission.done {
+    background: rgba(81, 207, 102, 0.14);
+    border-color: rgba(81, 207, 102, 0.35);
+    color: #b2f2bb;
+}
+
+body.dark-mode .progress-bar {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+body.dark-mode .power-bar {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+body.dark-mode .config-notice {
+    background: rgba(250, 176, 5, 0.12);
+    color: #ffe066;
+}
+
+body.dark-mode .input-hint {
+    color: rgba(233, 236, 239, 0.75);
+}
+
+body.dark-mode .plat {
+    color: rgba(233, 236, 239, 0.65);
+}
+
+body.dark-mode .setting-select {
+    background: rgba(0, 0, 0, 0.25);
+    border-color: rgba(255, 255, 255, 0.16);
+    color: #e9ecef;
+}
+
+body.dark-mode .slider {
+    background: rgba(255, 255, 255, 0.18);
 }
 
 #app:before,

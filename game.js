@@ -21,7 +21,8 @@ let gameState = {
     mission: null,
     settings: {
         sound: true,
-        table: null
+        table: null,
+        dark: false
     }
 };
 
@@ -34,7 +35,7 @@ const JSONBIN_API_KEY = '$2a$10$YOUR_API_KEY_HERE';
 const IS_CONFIGURED = JSONBIN_ID !== 'YOUR_BIN_ID_HERE' && JSONBIN_API_KEY !== '$2a$10$YOUR_API_KEY_HERE';
 
 const SETTINGS_KEY = 'mathBlasterSettings';
-const LOCAL_SCORES_KEY = 'mathBlasterGlobalScores';
+const LEGACY_LOCAL_SCORES_KEY = 'mathBlasterGlobalScores';
 
 // Device Detection
 function detectMobile() {
@@ -63,6 +64,7 @@ function loadSettings() {
         if (!raw) return;
         const parsed = JSON.parse(raw);
         if (typeof parsed.sound === 'boolean') gameState.settings.sound = parsed.sound;
+        if (typeof parsed.dark === 'boolean') gameState.settings.dark = parsed.dark;
         if (parsed.table === null || parsed.table === undefined || parsed.table === '') {
             gameState.settings.table = null;
         } else {
@@ -77,15 +79,23 @@ function loadSettings() {
 function saveSettings() {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify({
         sound: !!gameState.settings.sound,
-        table: gameState.settings.table === null ? '' : String(gameState.settings.table)
+        table: gameState.settings.table === null ? '' : String(gameState.settings.table),
+        dark: !!gameState.settings.dark
     }));
 }
 
 function applySettingsToUI() {
     const soundEl = document.getElementById('setting-sound');
     const tableEl = document.getElementById('setting-table');
+    const darkEl = document.getElementById('setting-dark');
     if (soundEl) soundEl.checked = !!gameState.settings.sound;
     if (tableEl) tableEl.value = gameState.settings.table === null ? '' : String(gameState.settings.table);
+    if (darkEl) darkEl.checked = !!gameState.settings.dark;
+    applyTheme();
+}
+
+function applyTheme() {
+    document.body.classList.toggle('dark-mode', !!gameState.settings.dark);
 }
 
 // Sound (simple WebAudio beeps)
@@ -129,7 +139,7 @@ function tinyHaptic() {
 // Global Leaderboard Management (JSONBin.io)
 async function fetchGlobalLeaderboard() {
     if (!IS_CONFIGURED) {
-        console.log('JSONBin not configured yet, using localStorage only');
+        console.log('JSONBin not configured yet');
         return null;
     }
     
@@ -160,8 +170,8 @@ async function fetchGlobalLeaderboard() {
 
 async function updateGlobalLeaderboard(name, score, time) {
     if (!IS_CONFIGURED) {
-        console.log('JSONBin not configured, saving to localStorage only');
-        return addToLocalLeaderboard(name, score, time);
+        console.log('JSONBin not configured, score not saved');
+        return null;
     }
     
     try {
@@ -203,89 +213,34 @@ async function updateGlobalLeaderboard(name, score, time) {
         
         gameState.globalLeaderboard = currentScores;
         
-        // Also save to localStorage as backup
-        addToLocalLeaderboard(name, score, time);
-        
         return currentScores;
     } catch (error) {
         console.error('Error updating global leaderboard:', error);
-        // Fallback to localStorage
-        return addToLocalLeaderboard(name, score, time);
+        return null;
     }
-}
-
-// Local Leaderboard Management (LocalStorage)
-function getLocalLeaderboard() {
-    const stored = localStorage.getItem(LOCAL_SCORES_KEY);
-    return stored ? JSON.parse(stored) : [];
-}
-
-function saveLocalLeaderboard(scores) {
-    localStorage.setItem(LOCAL_SCORES_KEY, JSON.stringify(scores));
-}
-
-function resetLocalScores() {
-    localStorage.removeItem(LOCAL_SCORES_KEY);
-    // Friendly little confirmation in the mascot bubble if present
-    const bubble = document.getElementById('mascot-bubble');
-    if (bubble) bubble.textContent = 'Local scores cleared! Global scores stay safe.';
-}
-
-function addToLocalLeaderboard(name, score, time) {
-    const scores = getLocalLeaderboard();
-    scores.push({
-        name: name,
-        score: score,
-        time: time,
-        date: new Date().toISOString(),
-        isMobile: gameState.isMobile,
-        platform: gameState.isMobile ? 'Mobile' : 'Desktop'
-    });
-    
-    scores.sort((a, b) => {
-        if (b.score !== a.score) return b.score - a.score;
-        return a.time - b.time;
-    });
-    
-    scores.splice(20);
-    saveLocalLeaderboard(scores);
-    return scores;
 }
 
 // Combined leaderboard function
 async function addToLeaderboard(name, score, time) {
     // Try to update global leaderboard
     await updateGlobalLeaderboard(name, score, time);
-    // Return merged leaderboard
-    return await getMergedLeaderboard();
+    // Return global leaderboard only
+    const fetched = await fetchGlobalLeaderboard();
+    return Array.isArray(fetched) ? fetched.slice(0, 10) : [];
 }
 
 async function getMergedLeaderboard() {
     const global = await fetchGlobalLeaderboard();
-    const local = getLocalLeaderboard();
-    
-    // If global data is available (JSONBin configured and fetch succeeded), show only global
-    if (global && global.length > 0) {
-        // ensure deterministic top 10 order
-        const sorted = global.slice().sort((a, b) => {
-            if (b.score !== a.score) return b.score - a.score;
-            return a.time - b.time;
-        });
-        return sorted.slice(0, 10);
-    }
-    
-    // Fallback to local leaderboard only
-    if (!local || local.length === 0) return [];
-    local.sort((a, b) => {
+    if (!Array.isArray(global) || global.length === 0) return [];
+    const sorted = global.slice().sort((a, b) => {
         if (b.score !== a.score) return b.score - a.score;
         return a.time - b.time;
     });
-    return local.slice(0, 10);
+    return sorted.slice(0, 10);
 }
 
 function getRank(score, time) {
-    const leaderboard = gameState.globalLeaderboard.length > 0 ? 
-        gameState.globalLeaderboard : getLocalLeaderboard();
+    const leaderboard = gameState.globalLeaderboard || [];
     
     let rank = 1;
     for (let entry of leaderboard) {
@@ -703,16 +658,13 @@ async function showLeaderboard() {
     listElement.innerHTML = '<div class="loading">Loading scores...</div>';
     showScreen('leaderboard-screen');
 
-    let source = 'local';
-    let baseScores = getLocalLeaderboard();
-    if (IS_CONFIGURED) {
-        const fetched = await fetchGlobalLeaderboard();
-        // If the fetch succeeded and returned scores, prefer global
-        if (Array.isArray(fetched)) {
-            baseScores = fetched;
-            source = 'global';
-        }
+    if (!IS_CONFIGURED) {
+        listElement.innerHTML = '<div class="config-notice">⚠️ Global leaderboard is not configured</div>';
+        return;
     }
+
+    const fetched = await fetchGlobalLeaderboard();
+    const baseScores = Array.isArray(fetched) ? fetched : [];
 
     // Helper to collect top scores for a given platform from current source
     function collectScoresForPlatform(platform) {
@@ -763,12 +715,7 @@ async function showLeaderboard() {
     html += `<div class="leaderboard-section"><h3>${currentPlatform} Scores</h3>${renderList(currentList)}</div>`;
     html += `<div class="leaderboard-section other-device"><h3>${otherPlatform} Scores</h3>${renderList(otherList)}</div>`;
 
-    html += `<div class="config-notice">Source: ${source === 'global' ? '🌍 Global (JSONBin)' : '📦 Local (this device)'}</div>`;
-    
-    // Show network/config notice if not configured
-    if (!IS_CONFIGURED) {
-        html += '<div class="config-notice">⚠️ Global leaderboard not configured yet</div>';
-    }
+    // JSONBin only
     
     listElement.innerHTML = html;
 }
@@ -813,6 +760,9 @@ document.addEventListener('DOMContentLoaded', () => {
     updateDeviceUI();
     applySettingsToUI();
 
+    // Remove legacy local scores (JSONBin-only leaderboard)
+    localStorage.removeItem(LEGACY_LOCAL_SCORES_KEY);
+
     const soundEl = document.getElementById('setting-sound');
     if (soundEl) {
         soundEl.addEventListener('change', () => {
@@ -829,6 +779,15 @@ document.addEventListener('DOMContentLoaded', () => {
             gameState.settings.table = v ? Number(v) : null;
             saveSettings();
             setMascot('🧠', gameState.settings.table ? `Practice ×${gameState.settings.table}!` : 'Mixed mode!');
+        });
+    }
+
+    const darkEl = document.getElementById('setting-dark');
+    if (darkEl) {
+        darkEl.addEventListener('change', () => {
+            gameState.settings.dark = !!darkEl.checked;
+            saveSettings();
+            applyTheme();
         });
     }
 
