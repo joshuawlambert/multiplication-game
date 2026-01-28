@@ -139,7 +139,8 @@ function addToLocalLeaderboard(name, score, time) {
         score: score,
         time: time,
         date: new Date().toISOString(),
-        isMobile: gameState.isMobile
+        isMobile: gameState.isMobile,
+        platform: gameState.isMobile ? 'Mobile' : 'Desktop'
     });
     
     scores.sort((a, b) => {
