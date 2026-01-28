@@ -106,12 +106,31 @@ body {
     padding: 12px 30px;
 }
 
-.btn-quit {
+.quit-btn {
     background: #ff6b6b;
     color: white;
-    font-size: 18px;
-    padding: 12px 30px;
-    margin-top: 20px;
+    font-family: 'Fredoka One', cursive;
+    font-size: 16px;
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 3px 0 #c92a2a;
+    transition: all 0.2s ease;
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 100;
+}
+
+.quit-btn:active {
+    transform: translateY(3px);
+    box-shadow: 0 0 0 #c92a2a;
+}
+
+#game-screen {
+    position: relative;
 }
 
 .menu-buttons {
@@ -566,36 +585,101 @@ h2 {
     opacity: 0.8;
 }
 
-/* Mobile Optimizations */
+/* Mobile Optimizations - No Scroll */
 .mobile-device #app {
-    padding-bottom: 20px;
+    padding: 10px;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.mobile-device .screen {
+    padding: 10px;
+    height: 100vh;
+    overflow: hidden;
+    justify-content: flex-start;
+}
+
+.mobile-device #game-screen {
+    justify-content: space-between;
+}
+
+.mobile-device .game-header {
+    padding: 8px 10px;
+    margin-bottom: 8px;
+    border-radius: 12px;
+}
+
+.mobile-device .stat-label {
+    font-size: 10px;
+}
+
+.mobile-device .stat-value {
+    font-size: 18px;
+}
+
+.mobile-device .progress-bar {
+    height: 12px;
+    margin-bottom: 8px;
+}
+
+.mobile-device .question-container {
+    margin-bottom: 5px;
+}
+
+.mobile-device .question {
+    font-size: 42px;
+    margin-bottom: 8px;
+}
+
+.mobile-device .answer-box {
+    padding: 10px;
+    min-height: 60px;
+    border-radius: 12px;
+    border-width: 3px;
+}
+
+.mobile-device .answer-display {
+    font-size: 36px;
+}
+
+.mobile-device .feedback {
+    font-size: 24px;
+    height: 30px;
+    margin-bottom: 5px;
+}
+
+.mobile-device .input-hint {
+    font-size: 12px;
+    margin-bottom: 5px;
+}
+
+.mobile-device .numpad {
+    gap: 6px;
+    margin-bottom: 5px;
+}
+
+.mobile-device .numpad-row {
+    gap: 6px;
 }
 
 .mobile-device .num-btn {
-    width: 90px;
-    height: 90px;
-    font-size: 36px;
+    width: 65px;
+    height: 65px;
+    font-size: 24px;
+    border-radius: 12px;
 }
 
 .mobile-device .btn-clear,
 .mobile-device .btn-submit {
-    font-size: 28px;
+    font-size: 20px;
 }
 
-.mobile-device .question {
-    font-size: 64px;
-}
-
-.mobile-device .answer-display {
-    font-size: 48px;
-}
-
-.mobile-device .numpad {
-    gap: 15px;
-}
-
-.mobile-device .numpad-row {
-    gap: 15px;
+.mobile-device .quit-btn {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+    top: 5px;
+    right: 5px;
 }
 
 /* Desktop Optimizations */
@@ -620,33 +704,66 @@ h2 {
 
 /* Responsive */
 @media (max-width: 480px) {
-    .math { font-size: 36px; }
-    .blaster { font-size: 40px; }
+    .math { font-size: 32px; }
+    .blaster { font-size: 36px; }
     
     .btn {
-        font-size: 20px;
-        padding: 12px 30px;
+        font-size: 18px;
+        padding: 10px 25px;
+        margin: 8px;
     }
     
     .question {
-        font-size: 56px;
+        font-size: 38px;
     }
     
     .num-btn {
-        width: 75px;
-        height: 75px;
-        font-size: 28px;
+        width: 58px;
+        height: 58px;
+        font-size: 22px;
+        border-radius: 10px;
     }
     
     .stat-value {
-        font-size: 22px;
+        font-size: 16px;
     }
     
     .game-header {
-        padding: 10px;
+        padding: 8px;
+        margin-bottom: 5px;
     }
     
     .stat-label {
-        font-size: 10px;
+        font-size: 9px;
+    }
+    
+    .answer-box {
+        padding: 8px;
+        min-height: 50px;
+    }
+    
+    .answer-display {
+        font-size: 32px;
+    }
+    
+    .feedback {
+        font-size: 20px;
+        height: 25px;
+    }
+    
+    .numpad {
+        gap: 5px;
+    }
+    
+    .numpad-row {
+        gap: 5px;
+    }
+    
+    .quit-btn {
+        width: 26px;
+        height: 26px;
+        font-size: 11px;
+        top: 5px;
+        right: 5px;
     }
 }
