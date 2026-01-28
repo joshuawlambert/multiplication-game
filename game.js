@@ -486,12 +486,13 @@ async function showLeaderboard() {
         const rank = index + 1;
         const rankClass = rank === 1 ? 'gold' : rank === 2 ? 'silver' : rank === 3 ? 'bronze' : '';
         const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `${rank}.`;
-        const deviceIcon = entry.isMobile ? '📱' : '💻';
-        
+        const platform = entry.platform || (entry.isMobile ? 'Mobile' : 'Desktop');
+        const deviceIcon = platform === 'Mobile' ? '📱' : platform === 'Desktop' ? '💻' : '👤';
+
         return `
             <div class="leaderboard-item">
                 <span class="leaderboard-rank ${rankClass}">${medal}</span>
-                <span class="leaderboard-name">${deviceIcon} ${entry.name}</span>
+                <span class="leaderboard-name">${deviceIcon} ${entry.name} <span class="plat">(${platform})</span></span>
                 <span class="leaderboard-score">${entry.score} pts</span>
             </div>
         `;
