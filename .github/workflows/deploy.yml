@@ -25,7 +25,7 @@ jobs:
         run: |
           # Replace placeholder with actual secrets
           sed -i "s/YOUR_BIN_ID_HERE/${{ secrets.JSONBIN_ID }}/g" game.js
-          sed -i "s/YOUR_API_KEY_HERE/${{ secrets.JSONBIN_API_KEY }}/g" game.js
+          sed -i "s/\$2a\$10\$YOUR_API_KEY_HERE/\$2a\$10\$${{ secrets.JSONBIN_API_KEY }}/g" game.js
           
       - name: Setup Pages
         uses: actions/configure-pages@v4
