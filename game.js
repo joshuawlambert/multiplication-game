@@ -9,17 +9,46 @@ let gameState = {
     playerAnswer: '',
     startTime: null,
     timerInterval: null,
-    playerName: ''
+    playerName: '',
+    isMobile: false
 };
 
-// Leaderboard Management
+// Device Detection
+function detectMobile() {
+    // Check for touch device and small screen
+    const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    const isSmallScreen = window.innerWidth <= 768;
+    const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
+    return (isTouch && isSmallScreen) || isMobileUA;
+}
+
+// Initialize device type
+gameState.isMobile = detectMobile();
+
+// Update body class for CSS targeting
+if (gameState.isMobile) {
+    document.body.classList.add('mobile-device');
+    document.body.classList.remove('desktop-device');
+} else {
+    document.body.classList.add('desktop-device');
+    document.body.classList.remove('mobile-device');
+}
+
+// Leaderboard Management - Separate for Mobile and Desktop
+function getLeaderboardKey() {
+    return gameState.isMobile ? 'mathBlasterLeaderboardMobile' : 'mathBlasterLeaderboardDesktop';
+}
+
 function getLeaderboard() {
-    const stored = localStorage.getItem('mathBlasterLeaderboard');
+    const key = getLeaderboardKey();
+    const stored = localStorage.getItem(key);
     return stored ? JSON.parse(stored) : [];
 }
 
 function saveLeaderboard(leaderboard) {
-    localStorage.setItem('mathBlasterLeaderboard', JSON.stringify(leaderboard));
+    const key = getLeaderboardKey();
+    localStorage.setItem(key, JSON.stringify(leaderboard));
 }
 
 function addToLeaderboard(name, score, time) {
@@ -28,7 +57,8 @@ function addToLeaderboard(name, score, time) {
         name: name,
         score: score,
         time: time,
-        date: new Date().toISOString()
+        date: new Date().toISOString(),
+        isMobile: gameState.isMobile
     });
     
     // Sort by score (descending), then by time (ascending)
@@ -51,6 +81,13 @@ function getRank(score) {
         else if (entry.score === score && entry.time < gameState.elapsedTime) rank++;
     }
     return rank;
+}
+
+// Get the other device's leaderboard for comparison
+function getOtherLeaderboard() {
+    const key = gameState.isMobile ? 'mathBlasterLeaderboardDesktop' : 'mathBlasterLeaderboardMobile';
+    const stored = localStorage.getItem(key);
+    return stored ? JSON.parse(stored) : [];
 }
 
 // Screen Management
@@ -88,6 +125,10 @@ function startGame() {
     gameState.playerAnswer = '';
     gameState.startTime = Date.now();
     
+    // Re-detect device in case of orientation change or resize
+    gameState.isMobile = detectMobile();
+    updateDeviceUI();
+    
     // Update UI
     updateStats();
     updateProgressBar();
@@ -103,26 +144,45 @@ function startGame() {
     showScreen('game-screen');
 }
 
-function getDifficulty() {
-    // Difficulty increases every 10 points
-    return Math.min(2 + Math.floor(gameState.score / 10), 6);
-}
-
-function generateQuestion() {
-    const difficulty = getDifficulty();
-    const numbers = [];
-    
-    // Generate random numbers based on difficulty
-    for (let i = 0; i < difficulty; i++) {
-        // For kids, keep numbers 1-12
-        numbers.push(Math.floor(Math.random() * 12) + 1);
+function updateDeviceUI() {
+    // Update body classes
+    if (gameState.isMobile) {
+        document.body.classList.add('mobile-device');
+        document.body.classList.remove('desktop-device');
+    } else {
+        document.body.classList.add('desktop-device');
+        document.body.classList.remove('mobile-device');
     }
     
+    // Show/hide appropriate input hints
+    const numpad = document.querySelector('.numpad');
+    const mobileHint = document.querySelector('.mobile-hint');
+    const desktopHint = document.querySelector('.desktop-hint');
+    
+    if (numpad) {
+        numpad.style.display = 'flex';
+    }
+    
+    if (mobileHint) {
+        mobileHint.style.display = gameState.isMobile ? 'block' : 'none';
+    }
+    
+    if (desktopHint) {
+        desktopHint.style.display = gameState.isMobile ? 'none' : 'block';
+    }
+}
+
+// Simplified: Always 2 numbers (1-12) for 8-10 year olds
+function generateQuestion() {
+    // Always generate 2 numbers for age-appropriate difficulty
+    const num1 = Math.floor(Math.random() * 12) + 1;
+    const num2 = Math.floor(Math.random() * 12) + 1;
+    
     // Calculate answer
-    gameState.currentAnswer = numbers.reduce((acc, num) => acc * num, 1);
+    gameState.currentAnswer = num1 * num2;
     
     // Display question
-    document.getElementById('question').textContent = numbers.join(' × ') + ' =';
+    document.getElementById('question').textContent = `${num1} × ${num2} =`;
     clearAnswer();
 }
 
@@ -158,9 +218,8 @@ function submitAnswer() {
 }
 
 function handleCorrect() {
-    // Calculate points based on difficulty and streak
-    const difficulty = getDifficulty();
-    let points = difficulty;
+    // Points: base 10 points per correct answer
+    let points = 10;
     
     // Streak bonus
     gameState.streak++;
@@ -168,15 +227,27 @@ function handleCorrect() {
         gameState.bestStreak = gameState.streak;
     }
     
+    // Bonus for streaks of 3 or more
     if (gameState.streak >= 3) {
-        points += Math.floor(gameState.streak / 3);
+        points += 5; // Extra 5 points for streaks
+    }
+    if (gameState.streak >= 5) {
+        points += 5; // Another 5 for longer streaks
+    }
+    if (gameState.streak >= 10) {
+        points += 10; // Big bonus for 10+ streak
     }
     
     gameState.score += points;
     gameState.correct++;
     
     // Show feedback
-    showFeedback('correct', gameState.streak >= 3 ? '🔥 AWESOME!' : '✓ CORRECT!');
+    let message = '✓ CORRECT!';
+    if (gameState.streak >= 10) message = '🔥 UNSTOPPABLE!';
+    else if (gameState.streak >= 5) message = '⚡ AMAZING!';
+    else if (gameState.streak >= 3) message = '🔥 AWESOME!';
+    
+    showFeedback('correct', message);
     
     // Update UI
     updateStats();
@@ -230,7 +301,8 @@ function updateTimer() {
 }
 
 function updateProgressBar() {
-    const progress = (gameState.score % 10) / 10 * 100;
+    // Progress toward next level (every 50 points = new level)
+    const progress = (gameState.score % 50) / 50 * 100;
     document.getElementById('progress-fill').style.width = progress + '%';
 }
 
@@ -259,15 +331,17 @@ function endGame() {
     
     // Show rank message
     const rank = getRank(gameState.score);
+    const deviceLabel = gameState.isMobile ? '📱 Mobile' : '💻 Desktop';
     const rankMessage = document.getElementById('rank-message');
+    
     if (rank === 1) {
-        rankMessage.textContent = '🏆 NEW HIGH SCORE! 🏆';
+        rankMessage.textContent = `🏆 NEW ${deviceLabel} HIGH SCORE! 🏆`;
         createConfetti();
     } else if (rank <= 3) {
-        rankMessage.textContent = `🥉 Rank #${rank} on the leaderboard!`;
+        rankMessage.textContent = `🥉 Rank #${rank} on ${deviceLabel}!`;
         createConfetti();
     } else if (rank <= 10) {
-        rankMessage.textContent = `Great job! You're #${rank} on the leaderboard!`;
+        rankMessage.textContent = `Great job! You're #${rank} on ${deviceLabel}!`;
     } else {
         rankMessage.textContent = 'Good try! Play again to beat your score!';
     }
@@ -314,18 +388,20 @@ function playAgain() {
 
 // Leaderboard Screen
 function showLeaderboard() {
-    const leaderboard = getLeaderboard();
+    const currentLeaderboard = getLeaderboard();
+    const otherLeaderboard = getOtherLeaderboard();
     const listElement = document.getElementById('leaderboard-list');
+    const deviceLabel = gameState.isMobile ? '📱 Mobile' : '💻 Desktop';
     
-    if (leaderboard.length === 0) {
-        listElement.innerHTML = '<div class="empty-leaderboard">No scores yet! Be the first to play!</div>';
+    let html = `<div class="leaderboard-section"><h3>${deviceLabel} Scores</h3>`;
+    
+    if (currentLeaderboard.length === 0) {
+        html += '<div class="empty-leaderboard">No scores yet! Be the first to play!</div>';
     } else {
-        listElement.innerHTML = leaderboard.map((entry, index) => {
+        html += currentLeaderboard.map((entry, index) => {
             const rank = index + 1;
             const rankClass = rank === 1 ? 'gold' : rank === 2 ? 'silver' : rank === 3 ? 'bronze' : '';
             const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `${rank}.`;
-            const minutes = Math.floor(entry.time / 60);
-            const seconds = Math.floor(entry.time % 60);
             
             return `
                 <div class="leaderboard-item">
@@ -337,25 +413,54 @@ function showLeaderboard() {
         }).join('');
     }
     
+    html += '</div>';
+    
+    // Show other device leaderboard for comparison
+    const otherLabel = gameState.isMobile ? '💻 Desktop' : '📱 Mobile';
+    html += `<div class="leaderboard-section other-device"><h3>${otherLabel} Scores</h3>`;
+    
+    if (otherLeaderboard.length === 0) {
+        html += '<div class="empty-leaderboard">No scores on this device yet!</div>';
+    } else {
+        html += otherLeaderboard.slice(0, 5).map((entry, index) => {
+            const rank = index + 1;
+            const rankClass = rank === 1 ? 'gold' : rank === 2 ? 'silver' : rank === 3 ? 'bronze' : '';
+            const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `${rank}.`;
+            
+            return `
+                <div class="leaderboard-item other-device-item">
+                    <span class="leaderboard-rank ${rankClass}">${medal}</span>
+                    <span class="leaderboard-name">${entry.name}</span>
+                    <span class="leaderboard-score">${entry.score} pts</span>
+                </div>
+            `;
+        }).join('');
+    }
+    
+    html += '</div>';
+    
+    listElement.innerHTML = html;
     showScreen('leaderboard-screen');
 }
 
-// Keyboard Support
-document.addEventListener('keydown', (e) => {
-    // Only handle keyboard if game screen is active
-    if (!document.getElementById('game-screen').classList.contains('active')) return;
-    
-    if (e.key >= '0' && e.key <= '9') {
-        addDigit(parseInt(e.key));
-    } else if (e.key === 'Enter') {
-        submitAnswer();
-    } else if (e.key === 'Backspace' || e.key === 'Delete') {
-        gameState.playerAnswer = gameState.playerAnswer.slice(0, -1);
-        updateAnswerDisplay();
-    } else if (e.key === 'Escape') {
-        clearAnswer();
-    }
-});
+// Keyboard Support - Only for desktop
+if (!gameState.isMobile) {
+    document.addEventListener('keydown', (e) => {
+        // Only handle keyboard if game screen is active
+        if (!document.getElementById('game-screen').classList.contains('active')) return;
+        
+        if (e.key >= '0' && e.key <= '9') {
+            addDigit(parseInt(e.key));
+        } else if (e.key === 'Enter') {
+            submitAnswer();
+        } else if (e.key === 'Backspace' || e.key === 'Delete') {
+            gameState.playerAnswer = gameState.playerAnswer.slice(0, -1);
+            updateAnswerDisplay();
+        } else if (e.key === 'Escape') {
+            clearAnswer();
+        }
+    });
+}
 
 // Prevent zoom on double tap for mobile
 let lastTouchEnd = 0;
@@ -366,3 +471,14 @@ document.addEventListener('touchend', (e) => {
     }
     lastTouchEnd = now;
 }, false);
+
+// Handle window resize to re-detect device
+window.addEventListener('resize', () => {
+    gameState.isMobile = detectMobile();
+    updateDeviceUI();
+});
+
+// Initialize UI on load
+document.addEventListener('DOMContentLoaded', () => {
+    updateDeviceUI();
+});

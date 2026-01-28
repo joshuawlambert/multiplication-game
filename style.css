@@ -516,6 +516,108 @@ h2 {
     }
 }
 
+/* Input Hints */
+.input-hint {
+    font-family: 'Nunito', sans-serif;
+    font-size: 16px;
+    color: #868e96;
+    text-align: center;
+    margin-bottom: 15px;
+    font-weight: 700;
+}
+
+.mobile-hint {
+    display: none;
+}
+
+.desktop-hint {
+    display: none;
+}
+
+.mobile-device .mobile-hint {
+    display: block;
+}
+
+.desktop-device .desktop-hint {
+    display: block;
+}
+
+/* Leaderboard Sections */
+.leaderboard-section {
+    margin-bottom: 20px;
+}
+
+.leaderboard-section h3 {
+    font-family: 'Fredoka One', cursive;
+    font-size: 20px;
+    color: #495057;
+    text-align: center;
+    margin-bottom: 15px;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 10px;
+}
+
+.leaderboard-section.other-device h3 {
+    opacity: 0.7;
+}
+
+.leaderboard-item.other-device-item {
+    opacity: 0.8;
+}
+
+/* Mobile Optimizations */
+.mobile-device #app {
+    padding-bottom: 20px;
+}
+
+.mobile-device .num-btn {
+    width: 90px;
+    height: 90px;
+    font-size: 36px;
+}
+
+.mobile-device .btn-clear,
+.mobile-device .btn-submit {
+    font-size: 28px;
+}
+
+.mobile-device .question {
+    font-size: 64px;
+}
+
+.mobile-device .answer-display {
+    font-size: 48px;
+}
+
+.mobile-device .numpad {
+    gap: 15px;
+}
+
+.mobile-device .numpad-row {
+    gap: 15px;
+}
+
+/* Desktop Optimizations */
+.desktop-device .numpad {
+    transform: scale(0.9);
+}
+
+.desktop-device .question {
+    font-size: 80px;
+}
+
+/* Touch improvements */
+@media (hover: none) {
+    .num-btn:hover {
+        transform: none;
+    }
+    
+    .btn:hover {
+        transform: none;
+    }
+}
+
 /* Responsive */
 @media (max-width: 480px) {
     .math { font-size: 36px; }
@@ -531,12 +633,20 @@ h2 {
     }
     
     .num-btn {
-        width: 70px;
-        height: 70px;
+        width: 75px;
+        height: 75px;
         font-size: 28px;
     }
     
     .stat-value {
-        font-size: 24px;
+        font-size: 22px;
+    }
+    
+    .game-header {
+        padding: 10px;
+    }
+    
+    .stat-label {
+        font-size: 10px;
     }
 }
