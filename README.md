@@ -1,6 +1,6 @@
-# 🎮 Math Blaster - Multiplication Game
+# 🎮 Times Table Dash - Multiplication Game
 
-A fun, interactive multiplication learning game designed for kids aged 7-10. Built for GitHub Pages with **global leaderboard** support!
+A fun, interactive multiplication learning game designed for kids aged 8-10. Built for GitHub Pages with a **global leaderboard**!
 
 ## 🌟 Play Now
 

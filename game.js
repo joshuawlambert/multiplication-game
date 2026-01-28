@@ -182,7 +182,7 @@ async function updateGlobalLeaderboard(name, score, time) {
         
         // Add new score
         currentScores.push({
-            name: name,
+            name: sanitizeName(name),
             score: score,
             time: time,
             date: new Date().toISOString(),
@@ -273,7 +273,7 @@ function backspaceName() {
 
 // Game Logic
 function startGame() {
-    const name = document.getElementById('player-name').value.trim();
+    const name = sanitizeName(document.getElementById('player-name').value);
     gameState.playerName = name || 'Player';
     
     // Reset game state
@@ -311,6 +311,21 @@ function startGame() {
     showScreen('game-screen');
 
     setMascot('🚀', `Hi ${gameState.playerName}! Let's play!`);
+}
+
+function sanitizeName(name) {
+    const cleaned = String(name || '').trim().replace(/\s+/g, ' ');
+    // Keep it short for small screens
+    return cleaned.slice(0, 12);
+}
+
+function escapeHtml(s) {
+    return String(s)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
 }
 
 function updateDeviceUI() {
@@ -357,11 +372,11 @@ function updatePowerUI() {
 }
 
 const MISSION_POOL = [
-    { type: 'streak', target: 3, text: 'Get a 3-streak!' },
-    { type: 'streak', target: 5, text: 'Get a 5-streak!' },
-    { type: 'fast', target: 4, text: 'Answer in under 4 seconds!' },
-    { type: 'correct', target: 8, text: 'Get 8 correct answers!' },
-    { type: 'score', target: 120, text: 'Reach 120 points!' }
+    { type: 'streak', target: 3, text: '3-streak!' },
+    { type: 'streak', target: 5, text: '5-streak!' },
+    { type: 'fast', target: 4, text: 'Fast! <4s' },
+    { type: 'correct', target: 8, text: '8 correct!' },
+    { type: 'score', target: 120, text: '120 pts!' }
 ];
 
 function pickMission() {
@@ -701,10 +716,11 @@ async function showLeaderboard() {
             const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `${rank}.`;
             const platformLabel = entry.platform || (entry.isMobile ? 'Mobile' : 'Desktop');
             const deviceIcon = platformLabel === 'Mobile' ? '📱' : '💻';
+            const safeName = escapeHtml(sanitizeName(entry.name));
             return `
                 <div class="leaderboard-item">
                     <span class="leaderboard-rank ${rankClass}">${medal}</span>
-                    <span class="leaderboard-name">${deviceIcon} ${entry.name} <span class="plat">(${platformLabel})</span></span>
+                    <span class="leaderboard-name">${deviceIcon} ${safeName} <span class="plat">(${platformLabel})</span></span>
                     <span class="leaderboard-score">${entry.score} pts</span>
                 </div>
             `;

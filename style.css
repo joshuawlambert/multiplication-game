@@ -178,18 +178,34 @@ body.dark-mode .slider {
 
 .math {
     font-family: 'Fredoka One', cursive;
-    font-size: 48px;
+    font-size: 40px;
     color: #ff6b6b;
     text-shadow: 3px 3px 0px #c92a2a;
     display: block;
+    letter-spacing: 1px;
 }
 
 .blaster {
     font-family: 'Fredoka One', cursive;
-    font-size: 52px;
+    font-size: 56px;
     color: #ffd43b;
     text-shadow: 3px 3px 0px #f08c00;
     display: block;
+}
+
+/* Text truncation helpers */
+.feedback,
+.mission,
+.mascot-bubble {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.leaderboard-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .stars {
@@ -979,6 +995,26 @@ h2 {
 }
 
 .mobile-device .stat-label {
+    display: none;
+}
+
+.mobile-device #score::before {
+    content: '⭐ ';
+}
+
+.mobile-device #timer::before {
+    content: '⏱️ ';
+}
+
+.mobile-device #streak::before {
+    content: '🔥 ';
+}
+
+.mobile-device #lives::before {
+    content: '❤️ ';
+}
+
+.mobile-device .stat-label {
     font-size: 9px;
 }
 
@@ -996,10 +1032,10 @@ h2 {
 }
 
 .mobile-device .mission-row {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 6px;
-    margin-bottom: 8px;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
 }
 
 .mobile-device .mission {
@@ -1008,7 +1044,11 @@ h2 {
 }
 
 .mobile-device .power {
-    width: 100%;
+    width: 120px;
+}
+
+.mobile-device .power-label {
+    display: none;
 }
 
 .mobile-device .power-label {
@@ -1020,7 +1060,7 @@ h2 {
 }
 
 .mobile-device .mascot {
-    margin-bottom: 4px;
+    display: none;
 }
 
 .mobile-device .mascot-face {
@@ -1074,10 +1114,24 @@ h2 {
 }
 
 .mobile-device .num-btn {
-    width: 58px;
-    height: 58px;
+    width: 54px;
+    height: 54px;
     font-size: 24px;
     border-radius: 12px;
+}
+
+@media (max-height: 720px) {
+    .mobile-device .num-btn {
+        width: 50px;
+        height: 50px;
+        font-size: 22px;
+    }
+    .mobile-device .question {
+        font-size: 30px;
+    }
+    .mobile-device .mission {
+        padding: 7px 9px;
+    }
 }
 
 .mobile-device .numpad-row {
