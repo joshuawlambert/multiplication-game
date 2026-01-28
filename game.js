@@ -467,40 +467,63 @@ function playAgain() {
 // Leaderboard Screen
 async function showLeaderboard() {
     const listElement = document.getElementById('leaderboard-list');
-    
-    // Show loading
-    listElement.innerHTML = '<div class="loading">Loading global scores...</div>';
-    showScreen('leaderboard-screen');
-    
-    // Fetch global leaderboard
-    const leaderboard = await getMergedLeaderboard();
-    
-    if (leaderboard.length === 0) {
-        listElement.innerHTML = '<div class="empty-leaderboard">No scores yet! Be the first to play!</div>';
-        return;
-    }
-    
-    let html = '<div class="leaderboard-section"><h3>🌍 Global Leaderboard</h3>';
-    
-    html += leaderboard.map((entry, index) => {
-        const rank = index + 1;
-        const rankClass = rank === 1 ? 'gold' : rank === 2 ? 'silver' : rank === 3 ? 'bronze' : '';
-        const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `${rank}.`;
-        const platform = entry.platform || (entry.isMobile ? 'Mobile' : 'Desktop');
-        const deviceIcon = platform === 'Mobile' ? '📱' : platform === 'Desktop' ? '💻' : '👤';
+    const currentPlatform = gameState.isMobile ? 'Mobile' : 'Desktop';
+    const otherPlatform = currentPlatform === 'Mobile' ? 'Desktop' : 'Mobile';
 
-        return `
-            <div class="leaderboard-item">
-                <span class="leaderboard-rank ${rankClass}">${medal}</span>
-                <span class="leaderboard-name">${deviceIcon} ${entry.name} <span class="plat">(${platform})</span></span>
-                <span class="leaderboard-score">${entry.score} pts</span>
-            </div>
-        `;
-    }).join('');
+    // Helper to collect scores for a given platform from both global and local sources
+    function collectScoresForPlatform(platform) {
+        const fromGlobal = (gameState.globalLeaderboard || []).filter(e => {
+            const plat = e.platform || (e.isMobile ? 'Mobile' : 'Desktop');
+            return plat === platform;
+        });
+        const fromLocal = getLocalLeaderboard().filter(e => {
+            const plat = e.platform || (e.isMobile ? 'Mobile' : 'Desktop');
+            return plat === platform;
+        });
+        const merged = [...fromGlobal, ...fromLocal];
+        // Deduplicate by name-score-time
+        const seen = new Set();
+        const uniq = [];
+        for (const s of merged) {
+            const key = `${s.name}-${s.score}-${s.time}-${s.platform}`;
+            if (!seen.has(key)) {
+                seen.add(key);
+                uniq.push(s);
+            }
+        }
+        uniq.sort((a,b) => b.score - a.score || a.time - b.time);
+        return uniq.slice(0, 10);
+    }
+
+    // Build sections
+    const currentList = collectScoresForPlatform(currentPlatform);
+    const otherList = collectScoresForPlatform(otherPlatform);
+
+    function renderList(entries) {
+        if (!entries || entries.length === 0) {
+            return '<div class="empty-leaderboard">No scores yet! Be the first to play!</div>';
+        }
+        return entries.map((entry, idx) => {
+            const rank = idx + 1;
+            const rankClass = rank === 1 ? 'gold' : rank === 2 ? 'silver' : rank === 3 ? 'bronze' : '';
+            const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `${rank}.`;
+            const platformLabel = entry.platform || (entry.isMobile ? 'Mobile' : 'Desktop');
+            const deviceIcon = platformLabel === 'Mobile' ? '📱' : '💻';
+            return `
+                <div class="leaderboard-item">
+                    <span class="leaderboard-rank ${rankClass}">${medal}</span>
+                    <span class="leaderboard-name">${deviceIcon} ${entry.name} <span class="plat">(${platformLabel})</span></span>
+                    <span class="leaderboard-score">${entry.score} pts</span>
+                </div>
+            `;
+        }).join('');
+    }
+
+    let html = '';
+    html += `<div class="leaderboard-section"><h3>${currentPlatform} Scores</h3>${renderList(currentList)}</div>`;
+    html += `<div class="leaderboard-section other-device"><h3>${otherPlatform} Scores</h3>${renderList(otherList)}</div>`;
     
-    html += '</div>';
-    
-    // Show connection status
+    // Show network/config notice if not configured
     if (!IS_CONFIGURED) {
         html += '<div class="config-notice">⚠️ Global leaderboard not configured yet</div>';
     }
