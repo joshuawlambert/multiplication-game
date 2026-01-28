@@ -15,12 +15,11 @@ let gameState = {
 };
 
 // JSONBin.io Configuration
-// To set up: Go to https://jsonbin.io/ and create a free account
-// Create a new bin with initial content: {"scores": []}
-// Paste your bin ID below:
-const JSONBIN_ID = 'YOUR_BIN_ID_HERE'; // Replace this with your actual bin ID
+// These values are injected during the GitHub Actions build process
+// DO NOT commit your real credentials to the repository
+const JSONBIN_ID = 'YOUR_BIN_ID_HERE';
 const JSONBIN_URL = `https://api.jsonbin.io/v3/b/${JSONBIN_ID}`;
-const JSONBIN_API_KEY = '$2a$10$YOUR_API_KEY_HERE'; // Replace with your JSONBin API key
+const JSONBIN_API_KEY = '$2a$10$YOUR_API_KEY_HERE';
 
 // Device Detection
 function detectMobile() {

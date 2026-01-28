@@ -43,11 +43,11 @@ The game automatically detects your device:
 - Enter to submit, Backspace to delete
 - Larger display
 
-## 🏆 Global Leaderboard Setup
+## 🏆 Global Leaderboard Setup (Secure)
 
-This game uses **JSONBin.io** for a shared global leaderboard that works across all devices!
+This game uses **JSONBin.io** for a shared global leaderboard that works across all devices! Your API keys are kept secure using **GitHub Secrets**.
 
-### Setting Up Your Own Global Leaderboard:
+### Setting Up Your Secure Global Leaderboard:
 
 1. **Create a free JSONBin.io account:**
    - Go to https://jsonbin.io/
@@ -62,25 +62,46 @@ This game uses **JSONBin.io** for a shared global leaderboard that works across 
    - Copy your **Bin ID** from the URL
    - Go to API Keys and copy your **$2a$10** Master Key
 
-4. **Update game.js:**
-   ```javascript
-   const JSONBIN_ID = 'your-bin-id-here';
-   const JSONBIN_API_KEY = '$2a$10$your-api-key-here';
-   ```
+4. **Add Repository Secrets to GitHub:**
+   - Go to your GitHub repo: `https://github.com/joshuawlambert/multiplication-game`
+   - Click **Settings** → **Secrets and variables** → **Actions**
+   - Click **New repository secret**
+   - Add `JSONBIN_ID` with your bin ID
+   - Add another secret: `JSONBIN_API_KEY` with your API key (without the `$2a$10$` prefix)
+   
+   Example:
+   - Name: `JSONBIN_ID` | Value: `abc123xyz`
+   - Name: `JSONBIN_API_KEY` | Value: `yourkeyhere123` (NOT `$2a$10$yourkeyhere123`)
 
-5. **Push to GitHub** - Your global leaderboard is now live!
+5. **Enable GitHub Actions:**
+   - Make sure GitHub Pages is set to deploy from **GitHub Actions** (not from a branch)
+   - Push any change to trigger the workflow
+
+The secrets are automatically injected during the build process and **never exposed** in your public code!
 
 ### Without Setup:
 The game works great with just **localStorage** - scores will be saved on each device separately.
 
 ## 🚀 Deploy to GitHub Pages
 
+### Option A: Using GitHub Actions (Recommended for Global Leaderboard)
+
+1. Fork this repository
+2. Go to **Settings** → **Pages**
+3. Under "Build and deployment", select **GitHub Actions**
+4. The workflow file is already in `.github/workflows/deploy.yml`
+5. Add your JSONBin secrets (see Global Leaderboard Setup above)
+6. Push any change to trigger deployment
+7. Your game will be live at `https://yourusername.github.io/multiplication-game/`
+
+### Option B: Deploy from Branch (Simpler, No Global Leaderboard)
+
 1. Fork this repository
 2. Go to Settings → Pages
 3. Select "Deploy from a branch"
 4. Choose "main" branch and "/ (root)" folder
 5. Click Save
-6. Your game will be live at `https://yourusername.github.io/multiplication-game/`
+6. Your game will be live (without global leaderboard sync)
 
 ## 🏗️ Tech Stack
 
