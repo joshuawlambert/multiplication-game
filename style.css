@@ -720,6 +720,44 @@ h2 {
     transition: border-color 0.3s ease;
 }
 
+/* Setup Screen name input */
+#setup-name {
+    width: 100%;
+    padding: 16px;
+    font-family: 'Fredoka One', cursive;
+    font-size: 24px;
+    text-align: center;
+    border: 4px solid #dee2e6;
+    border-radius: 18px;
+    margin: 12px 0 20px;
+    outline: none;
+    transition: border-color 0.3s ease;
+}
+
+#setup-name:focus {
+    border-color: #74c0fc;
+}
+
+/* Leaderboard filters */
+.filters {
+    width: 100%;
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+}
+
+.filters .setting-select {
+    width: 220px;
+}
+
+@media (max-width: 420px) {
+    .filters .setting-select {
+        width: 100%;
+    }
+}
+
 #player-name:focus {
     border-color: #74c0fc;
 }

@@ -17,9 +17,12 @@ let gameState = {
     playerName: '',
     isMobile: false,
     globalLeaderboard: [],
+    setup: {
+        focus: null,
+        bonus: 0
+    },
     settings: {
         sound: true,
-        table: null,
         dark: false
     }
 };
@@ -66,12 +69,7 @@ function loadSettings() {
         const parsed = JSON.parse(raw);
         if (typeof parsed.sound === 'boolean') gameState.settings.sound = parsed.sound;
         if (typeof parsed.dark === 'boolean') gameState.settings.dark = parsed.dark;
-        if (parsed.table === null || parsed.table === undefined || parsed.table === '') {
-            gameState.settings.table = null;
-        } else {
-            const t = Number(parsed.table);
-            gameState.settings.table = Number.isFinite(t) ? t : null;
-        }
+        // table moved to setup screen
     } catch {
         // ignore
     }
@@ -80,19 +78,38 @@ function loadSettings() {
 function saveSettings() {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify({
         sound: !!gameState.settings.sound,
-        table: gameState.settings.table === null ? '' : String(gameState.settings.table),
         dark: !!gameState.settings.dark
     }));
 }
 
 function applySettingsToUI() {
     const soundEl = document.getElementById('setting-sound');
-    const tableEl = document.getElementById('setting-table');
     const darkEl = document.getElementById('setting-dark');
     if (soundEl) soundEl.checked = !!gameState.settings.sound;
-    if (tableEl) tableEl.value = gameState.settings.table === null ? '' : String(gameState.settings.table);
     if (darkEl) darkEl.checked = !!gameState.settings.dark;
     applyTheme();
+}
+
+function readSetupFromUI() {
+    const nameEl = document.getElementById('setup-name');
+    const focusEl = document.getElementById('setup-focus');
+    const bonusEl = document.getElementById('setup-bonus');
+
+    const name = nameEl ? nameEl.value : '';
+    const focusRaw = focusEl ? focusEl.value : '';
+    const bonusRaw = bonusEl ? bonusEl.value : '0';
+
+    const focus = focusRaw ? Number(focusRaw) : null;
+    const bonus = Math.max(0, Math.min(10, Number(bonusRaw) || 0));
+
+    gameState.playerName = sanitizeName(name) || 'Player';
+    gameState.setup.focus = Number.isFinite(focus) ? focus : null;
+    gameState.setup.bonus = bonus;
+}
+
+function startGameFromSetup() {
+    readSetupFromUI();
+    startGame();
 }
 
 function applyTheme() {
@@ -164,6 +181,8 @@ async function fetchGlobalLeaderboard() {
             if (!('platform' in e)) {
                 e.platform = (e.isMobile ? 'Mobile' : 'Desktop');
             }
+            if (!('bonus' in e)) e.bonus = 0;
+            if (!('focus' in e)) e.focus = null;
         }
         gameState.globalLeaderboard = scores;
         return gameState.globalLeaderboard;
@@ -192,7 +211,9 @@ async function updateGlobalLeaderboard(name, score, time) {
             time: time,
             date: new Date().toISOString(),
             isMobile: gameState.isMobile,
-            platform: gameState.isMobile ? 'Mobile' : 'Desktop'
+            platform: gameState.isMobile ? 'Mobile' : 'Desktop',
+            focus: gameState.setup.focus,
+            bonus: gameState.setup.bonus
         });
         
         // Sort by score (descending), then by time (ascending)
@@ -256,6 +277,35 @@ function getRank(score, time) {
     return rank;
 }
 
+function getRankForSetup(score, time, { platform, focus, bonus }) {
+    const leaderboard = gameState.globalLeaderboard || [];
+    const filtered = leaderboard.filter(e => {
+        if (platform && e.platform !== platform) return false;
+        if (typeof bonus === 'number' && (e.bonus || 0) !== bonus) return false;
+        if (focus === 'mixed') {
+            return (e.focus === null || e.focus === undefined);
+        }
+        if (typeof focus === 'number') {
+            return Number(e.focus) === focus;
+        }
+        return true;
+    });
+
+    filtered.sort((a, b) => {
+        const sa = Number(a.score);
+        const sb = Number(b.score);
+        return (sb - sa) || ((a.time || 0) - (b.time || 0));
+    });
+
+    let rank = 1;
+    for (let entry of filtered) {
+        const s = Number(entry.score);
+        if (s > score) rank++;
+        else if (s === score && entry.time < time) rank++;
+    }
+    return { rank, total: filtered.length };
+}
+
 // Screen Management
 function showScreen(screenId) {
     document.querySelectorAll('.screen').forEach(screen => {
@@ -279,8 +329,7 @@ function backspaceName() {
 
 // Game Logic
 function startGame() {
-    const name = sanitizeName(document.getElementById('player-name').value);
-    gameState.playerName = name || 'Player';
+    // name + setup should be set by setup screen
     
     // Reset game state
     gameState.score = 0;
@@ -360,7 +409,7 @@ function generateQuestion() {
     let num1 = Math.floor(Math.random() * 12) + 1;
     let num2 = Math.floor(Math.random() * 12) + 1;
 
-    const focus = gameState.settings.table;
+    const focus = gameState.setup.focus;
     if (focus && focus >= 2 && focus <= 12) {
         // Pick a random partner for the focused table
         const partner = Math.floor(Math.random() * 12) + 1;
@@ -381,7 +430,8 @@ function generateQuestion() {
 
 function getTimeLimitSeconds(level) {
     const l = Math.max(1, Math.min(MAX_LEVEL, level));
-    return Math.max(1, 6 - l);
+    const base = Math.max(1, 6 - l);
+    return base + (gameState.setup.bonus || 0);
 }
 
 function updateLevelAndUI() {
@@ -620,19 +670,26 @@ async function endGame() {
     document.getElementById('final-time').textContent = 
         `${minutes}:${seconds.toString().padStart(2, '0')}`;
     
-    const rank = getRank(gameState.score, gameState.elapsedTime);
+    // Rank for current setup + platform
+    const platform = gameState.isMobile ? 'Mobile' : 'Desktop';
+    const focus = gameState.setup.focus === null ? 'mixed' : gameState.setup.focus;
+    const bonus = gameState.setup.bonus || 0;
+    const { rank, total } = getRankForSetup(gameState.score, gameState.elapsedTime, { platform, focus, bonus });
     const rankMessage = document.getElementById('rank-message');
     
+    const focusLabel = (focus === 'mixed') ? 'Mixed' : `×${focus}`;
+    const bonusLabel = `+${bonus}s`;
+
     if (rank === 1) {
-        rankMessage.textContent = '🏆 NEW GLOBAL HIGH SCORE! 🏆';
+        rankMessage.textContent = `🏆 #1 (${focusLabel}, ${bonusLabel}, ${platform}) 🏆`;
         createConfetti();
     } else if (rank <= 3) {
-        rankMessage.textContent = `🥉 Rank #${rank} Globally!`;
+        rankMessage.textContent = `🥉 #${rank}/${total} (${focusLabel}, ${bonusLabel}, ${platform})`;
         createConfetti();
     } else if (rank <= 10) {
-        rankMessage.textContent = `Great job! You're #${rank} on the global leaderboard!`;
+        rankMessage.textContent = `Nice! #${rank}/${total} (${focusLabel}, ${bonusLabel}, ${platform})`;
     } else {
-        rankMessage.textContent = 'Good try! Play again to beat your score!';
+        rankMessage.textContent = `Keep going! #${rank}/${total} (${focusLabel}, ${bonusLabel}, ${platform})`;
     }
     
     showScreen('gameover-screen');
@@ -692,11 +749,29 @@ async function showLeaderboard() {
     const fetched = await fetchGlobalLeaderboard();
     const baseScores = Array.isArray(fetched) ? fetched : [];
 
+    const focusFilterEl = document.getElementById('filter-focus');
+    const bonusFilterEl = document.getElementById('filter-bonus');
+    const focusFilterRaw = focusFilterEl ? focusFilterEl.value : '';
+    const bonusFilterRaw = bonusFilterEl ? bonusFilterEl.value : '';
+    const bonusFilter = bonusFilterRaw === '' ? null : (Number(bonusFilterRaw) || 0);
+    const focusFilter = focusFilterRaw === '' ? null : (focusFilterRaw === 'mixed' ? 'mixed' : Number(focusFilterRaw));
+
+    function setupMatches(entry) {
+        if (bonusFilter !== null && (entry.bonus || 0) !== bonusFilter) return false;
+        if (focusFilter === 'mixed') {
+            return (entry.focus === null || entry.focus === undefined);
+        }
+        if (typeof focusFilter === 'number' && Number.isFinite(focusFilter)) {
+            return Number(entry.focus) === focusFilter;
+        }
+        return true;
+    }
+
     // Helper to collect top scores for a given platform from current source
     function collectScoresForPlatform(platform) {
         const merged = (baseScores || []).filter(e => {
             const plat = e.platform || (e.isMobile ? 'Mobile' : 'Desktop');
-            return plat === platform;
+            return plat === platform && setupMatches(e);
         });
         // Deduplicate by name-score-time
         const seen = new Set();
@@ -730,10 +805,12 @@ async function showLeaderboard() {
             const safeName = escapeHtml(sanitizeName(entry.name));
             const scoreNum = Number(entry.score);
             const scoreText = Number.isFinite(scoreNum) ? scoreNum.toFixed(2) : '0.00';
+            const focusLabel = (entry.focus === null || entry.focus === undefined) ? 'Mixed' : `×${entry.focus}`;
+            const bonusLabel = `+${(entry.bonus || 0)}s`;
             return `
                 <div class="leaderboard-item">
                     <span class="leaderboard-rank ${rankClass}">${medal}</span>
-                    <span class="leaderboard-name">${deviceIcon} ${safeName} <span class="plat">(${platformLabel})</span></span>
+                    <span class="leaderboard-name">${deviceIcon} ${safeName} <span class="plat">(${focusLabel}, ${bonusLabel}, ${platformLabel})</span></span>
                     <span class="leaderboard-score">${scoreText}</span>
                 </div>
             `;
@@ -801,14 +878,17 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    const tableEl = document.getElementById('setting-table');
-    if (tableEl) {
-        tableEl.addEventListener('change', () => {
-            const v = tableEl.value;
-            gameState.settings.table = v ? Number(v) : null;
-            saveSettings();
-        });
+    const setupName = document.getElementById('setup-name');
+    if (setupName) {
+        // convenience: if they typed on name screen previously
+        const legacyName = document.getElementById('player-name');
+        if (legacyName && legacyName.value && !setupName.value) setupName.value = legacyName.value;
     }
+
+    const focusFilterEl = document.getElementById('filter-focus');
+    const bonusFilterEl = document.getElementById('filter-bonus');
+    if (focusFilterEl) focusFilterEl.addEventListener('change', () => showLeaderboard());
+    if (bonusFilterEl) bonusFilterEl.addEventListener('change', () => showLeaderboard());
 
     const darkEl = document.getElementById('setting-dark');
     if (darkEl) {

@@ -18,7 +18,7 @@
             </div>
             
             <div class="menu-buttons">
-                <button class="btn btn-play" onclick="showScreen('name-screen')">
+                <button class="btn btn-play" onclick="showScreen('setup-screen')">
                     🚀 PLAY GAME
                 </button>
                 <button class="btn btn-leaderboard" onclick="showLeaderboard()">
@@ -31,6 +31,65 @@
                     ❓ HOW TO PLAY
                 </button>
             </div>
+        </div>
+
+        <!-- Game Setup Screen -->
+        <div id="setup-screen" class="screen">
+            <h2>🎮 Game Setup</h2>
+
+            <div class="settings-card">
+                <div class="setting">
+                    <div>
+                        <div class="setting-title">🌟 Name</div>
+                        <div class="setting-desc">Keep it short so it fits!</div>
+                    </div>
+                </div>
+                <input type="text" id="setup-name" placeholder="Your name" maxlength="12">
+
+                <div class="setting">
+                    <div>
+                        <div class="setting-title">🎯 Focus Mode</div>
+                        <div class="setting-desc">Pick a table to practice</div>
+                    </div>
+                    <select id="setup-focus" class="setting-select">
+                        <option value="">Mixed (1-12)</option>
+                        <option value="2">Focus: ×2</option>
+                        <option value="3">Focus: ×3</option>
+                        <option value="4">Focus: ×4</option>
+                        <option value="5">Focus: ×5</option>
+                        <option value="6">Focus: ×6</option>
+                        <option value="7">Focus: ×7</option>
+                        <option value="8">Focus: ×8</option>
+                        <option value="9">Focus: ×9</option>
+                        <option value="10">Focus: ×10</option>
+                        <option value="11">Focus: ×11</option>
+                        <option value="12">Focus: ×12</option>
+                    </select>
+                </div>
+
+                <div class="setting">
+                    <div>
+                        <div class="setting-title">⏱️ Extra Time</div>
+                        <div class="setting-desc">Add seconds to every level</div>
+                    </div>
+                    <select id="setup-bonus" class="setting-select">
+                        <option value="0">+0 sec</option>
+                        <option value="1">+1 sec</option>
+                        <option value="2">+2 sec</option>
+                        <option value="3">+3 sec</option>
+                        <option value="4">+4 sec</option>
+                        <option value="5">+5 sec</option>
+                        <option value="6">+6 sec</option>
+                        <option value="7">+7 sec</option>
+                        <option value="8">+8 sec</option>
+                        <option value="9">+9 sec</option>
+                        <option value="10">+10 sec</option>
+                    </select>
+                </div>
+            </div>
+
+            <button class="btn btn-play" onclick="startGameFromSetup()">🚀 START!</button>
+            <button class="btn btn-back" onclick="showScreen('menu-screen')">← BACK</button>
         </div>
 
         <!-- Name Entry Screen -->
@@ -75,7 +134,7 @@
                     <button class="btn-backspace" onclick="backspaceName()">⌫</button>
                 </div>
             </div>
-            <button class="btn btn-play" onclick="startGame()">🎮 START!</button>
+            <button class="btn btn-play" onclick="showScreen('setup-screen')">➡️ NEXT</button>
             <button class="btn btn-back" onclick="showScreen('menu-screen')">← BACK</button>
         </div>
 
@@ -180,6 +239,37 @@
         <!-- Leaderboard Screen -->
         <div id="leaderboard-screen" class="screen">
             <h2>🏆 HIGH SCORES 🏆</h2>
+            <div class="filters">
+                <select id="filter-focus" class="setting-select">
+                    <option value="">Focus: Any</option>
+                    <option value="mixed">Focus: Mixed</option>
+                    <option value="2">Focus: ×2</option>
+                    <option value="3">Focus: ×3</option>
+                    <option value="4">Focus: ×4</option>
+                    <option value="5">Focus: ×5</option>
+                    <option value="6">Focus: ×6</option>
+                    <option value="7">Focus: ×7</option>
+                    <option value="8">Focus: ×8</option>
+                    <option value="9">Focus: ×9</option>
+                    <option value="10">Focus: ×10</option>
+                    <option value="11">Focus: ×11</option>
+                    <option value="12">Focus: ×12</option>
+                </select>
+                <select id="filter-bonus" class="setting-select">
+                    <option value="">Time: Any</option>
+                    <option value="0">Time: +0s</option>
+                    <option value="1">Time: +1s</option>
+                    <option value="2">Time: +2s</option>
+                    <option value="3">Time: +3s</option>
+                    <option value="4">Time: +4s</option>
+                    <option value="5">Time: +5s</option>
+                    <option value="6">Time: +6s</option>
+                    <option value="7">Time: +7s</option>
+                    <option value="8">Time: +8s</option>
+                    <option value="9">Time: +9s</option>
+                    <option value="10">Time: +10s</option>
+                </select>
+            </div>
             <div id="leaderboard-list" class="leaderboard-list"></div>
             <button class="btn btn-back" onclick="showScreen('menu-screen')">← BACK TO MENU</button>
         </div>
@@ -195,25 +285,6 @@
                         <input id="setting-sound" type="checkbox" checked>
                         <span class="slider"></span>
                     </label>
-                </div>
-
-                <div class="setting">
-                    <div class="setting-title">🎯 Practice Mode</div>
-                    <div class="setting-desc">Mixed (random) or focus on a single times table</div>
-                    <select id="setting-table" class="setting-select">
-                        <option value="">Mixed (1-12)</option>
-                        <option value="2">Focus: ×2</option>
-                        <option value="3">Focus: ×3</option>
-                        <option value="4">Focus: ×4</option>
-                        <option value="5">Focus: ×5</option>
-                        <option value="6">Focus: ×6</option>
-                        <option value="7">Focus: ×7</option>
-                        <option value="8">Focus: ×8</option>
-                        <option value="9">Focus: ×9</option>
-                        <option value="10">Focus: ×10</option>
-                        <option value="11">Focus: ×11</option>
-                        <option value="12">Focus: ×12</option>
-                    </select>
                 </div>
 
                 <div class="setting">
