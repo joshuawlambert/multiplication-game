@@ -87,30 +87,21 @@
                     <span id="score" class="stat-value">0</span>
                 </div>
                 <div class="stat">
-                    <span class="stat-label">⏱️ Time</span>
-                    <span id="timer" class="stat-value">0:00</span>
+                    <span class="stat-label">🎚️ Lvl</span>
+                    <span id="level" class="stat-value">1</span>
                 </div>
                 <div class="stat">
-                    <span class="stat-label">🔥 Streak</span>
-                    <span id="streak" class="stat-value">0</span>
+                    <span class="stat-label">🧩 Q</span>
+                    <span id="q" class="stat-value">1/50</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">⏳ Left</span>
+                    <span id="remain" class="stat-value">5</span>
                 </div>
                 <div class="stat">
                     <span class="stat-label">❤️ Lives</span>
                     <span id="lives" class="stat-value">❤❤❤</span>
                 </div>
-            </div>
-
-            <div class="mission-row">
-                <div id="mission" class="mission">🎯 Mission: Get 3 correct in a row!</div>
-                <div class="power">
-                    <span class="power-label">✨ Power</span>
-                    <div class="power-bar"><div id="power-fill" class="power-fill"></div></div>
-                </div>
-            </div>
-
-            <div class="mascot" aria-hidden="true">
-                <div id="mascot-face" class="mascot-face">🚀</div>
-                <div id="mascot-bubble" class="mascot-bubble">Let's blast some answers!</div>
             </div>
 
             <div class="progress-bar">
@@ -174,8 +165,8 @@
                     <span id="final-time" class="final-value">0:00</span>
                 </div>
                 <div class="final-stat">
-                    <span class="final-label">Best Streak</span>
-                    <span id="final-streak" class="final-value">0</span>
+                    <span class="final-label">Level Reached</span>
+                    <span id="final-level" class="final-value">1</span>
                 </div>
             </div>
 
@@ -258,23 +249,19 @@
                 </div>
                 <div class="help-item">
                     <span class="help-icon">⭐</span>
-                    <p>Each correct answer gives you points. Go fast for a speed bonus!</p>
+                    <p>50 questions total: 5 levels × 10 questions.</p>
                 </div>
                 <div class="help-item">
                     <span class="help-icon">🔥</span>
-                    <p>Streak bonuses: 3+ = +5 | 5+ = +10 | 10+ = +20</p>
+                    <p>Each level is faster: 5s → 4s → 3s → 2s → 1s per question.</p>
                 </div>
                 <div class="help-item">
                     <span class="help-icon">❤️</span>
-                    <p>You get 3 lives. A wrong answer costs a life, then you keep going!</p>
+                    <p>You get 3 lives. Wrong answer or time-out costs 1 life.</p>
                 </div>
                 <div class="help-item">
-                    <span class="help-icon">✨</span>
-                    <p>Fill the Power bar to activate POWER MODE (double points for 5 answers)!</p>
-                </div>
-                <div class="help-item">
-                    <span class="help-icon">🏅</span>
-                    <p>Complete Missions for bonus points and celebrations!</p>
+                    <span class="help-icon">⚡</span>
+                    <p>Scoring: each question is worth up to 1.00 point based on speed.</p>
                 </div>
             </div>
             <button class="btn btn-back" onclick="showScreen('menu-screen')">← BACK</button>

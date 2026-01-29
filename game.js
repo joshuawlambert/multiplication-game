@@ -1,30 +1,31 @@
 // Game State
 let gameState = {
     score: 0,
-    streak: 0,
-    bestStreak: 0,
     correct: 0,
     wrong: 0,
     lives: 3,
     level: 1,
-    xp: 0,
+    questionIndex: 0,
+    questionsTotal: 50,
     currentAnswer: 0,
     playerAnswer: '',
     startTime: null,
     questionStartTime: null,
-    timerInterval: null,
+    questionTimerInterval: null,
+    lastSecondTick: null,
+    questionActive: false,
     playerName: '',
     isMobile: false,
     globalLeaderboard: [],
-    power: 0,
-    powerTurns: 0,
-    mission: null,
     settings: {
         sound: true,
         table: null,
         dark: false
     }
 };
+
+const QUESTIONS_PER_LEVEL = 10;
+const MAX_LEVEL = 5;
 
 // JSONBin.io Configuration
 // These values are injected during the GitHub Actions build process
@@ -121,7 +122,7 @@ function beep(type) {
     g.connect(ctx.destination);
 
     const now = ctx.currentTime;
-    const base = type === 'correct' ? 660 : type === 'power' ? 880 : 220;
+    const base = type === 'correct' ? 660 : type === 'warning' ? 520 : 220;
     o.frequency.setValueAtTime(base, now);
     o.type = 'triangle';
     g.gain.setValueAtTime(0.0001, now);
@@ -156,6 +157,10 @@ async function fetchGlobalLeaderboard() {
         const scores = data.record.scores || [];
         // Normalize platform info for entries missing it
         for (let e of scores) {
+            if (typeof e.score === 'string') {
+                const n = Number(e.score);
+                e.score = Number.isFinite(n) ? n : 0;
+            }
             if (!('platform' in e)) {
                 e.platform = (e.isMobile ? 'Mobile' : 'Desktop');
             }
@@ -244,8 +249,9 @@ function getRank(score, time) {
     
     let rank = 1;
     for (let entry of leaderboard) {
-        if (entry.score > score) rank++;
-        else if (entry.score === score && entry.time < time) rank++;
+        const s = typeof entry.score === 'string' ? Number(entry.score) : entry.score;
+        if (s > score) rank++;
+        else if (s === score && entry.time < time) rank++;
     }
     return rank;
 }
@@ -278,19 +284,20 @@ function startGame() {
     
     // Reset game state
     gameState.score = 0;
-    gameState.streak = 0;
-    gameState.bestStreak = 0;
     gameState.correct = 0;
     gameState.wrong = 0;
     gameState.lives = 3;
     gameState.level = 1;
-    gameState.xp = 0;
+    gameState.questionIndex = 0;
     gameState.playerAnswer = '';
     gameState.startTime = Date.now();
-    gameState.questionStartTime = Date.now();
-    gameState.power = 0;
-    gameState.powerTurns = 0;
-    gameState.mission = pickMission();
+    gameState.questionStartTime = null;
+    gameState.lastSecondTick = null;
+    gameState.questionActive = false;
+    if (gameState.questionTimerInterval) {
+        clearInterval(gameState.questionTimerInterval);
+        gameState.questionTimerInterval = null;
+    }
     
     // Re-detect device
     gameState.isMobile = detectMobile();
@@ -299,18 +306,14 @@ function startGame() {
     // Update UI
     updateStats();
     updateProgressBar();
-    
-    // Start timer
-    if (gameState.timerInterval) clearInterval(gameState.timerInterval);
-    gameState.timerInterval = setInterval(updateTimer, 1000);
-    
-    // Generate first question
-    generateQuestion();
+
+    // Start first question
+    nextQuestion();
     
     // Show game screen
     showScreen('game-screen');
 
-    setMascot('🚀', `Hi ${gameState.playerName}! Let's play!`);
+    // no mascot
 }
 
 function sanitizeName(name) {
@@ -349,69 +352,11 @@ function updateDeviceUI() {
     }
 }
 
-function setMascot(face, text) {
-    const f = document.getElementById('mascot-face');
-    const b = document.getElementById('mascot-bubble');
-    if (f) f.textContent = face;
-    if (b) b.textContent = text;
-}
-
 function updateLivesUI() {
     const el = document.getElementById('lives');
     if (!el) return;
     const hearts = Math.max(0, Math.min(3, gameState.lives));
     el.textContent = '❤'.repeat(hearts) + '♡'.repeat(3 - hearts);
-}
-
-function updatePowerUI() {
-    const fill = document.getElementById('power-fill');
-    if (!fill) return;
-    const pct = Math.max(0, Math.min(100, gameState.power));
-    fill.style.width = pct + '%';
-    fill.classList.toggle('active', gameState.powerTurns > 0);
-}
-
-const MISSION_POOL = [
-    { type: 'streak', target: 3, text: '3-streak!' },
-    { type: 'streak', target: 5, text: '5-streak!' },
-    { type: 'fast', target: 4, text: 'Fast! <4s' },
-    { type: 'correct', target: 8, text: '8 correct!' },
-    { type: 'score', target: 120, text: '120 pts!' }
-];
-
-function pickMission() {
-    const m = MISSION_POOL[Math.floor(Math.random() * MISSION_POOL.length)];
-    return { ...m, done: false };
-}
-
-function updateMissionUI() {
-    const el = document.getElementById('mission');
-    if (!el || !gameState.mission) return;
-    if (gameState.mission.done) {
-        el.textContent = '🏅 Mission complete! Keep going!';
-        el.classList.add('done');
-        return;
-    }
-    el.classList.remove('done');
-    el.textContent = `🎯 Mission: ${gameState.mission.text}`;
-}
-
-function checkMission({ lastAnswerSeconds }) {
-    const m = gameState.mission;
-    if (!m || m.done) return;
-
-    if (m.type === 'streak' && gameState.streak >= m.target) m.done = true;
-    if (m.type === 'fast' && typeof lastAnswerSeconds === 'number' && lastAnswerSeconds <= m.target) m.done = true;
-    if (m.type === 'correct' && gameState.correct >= m.target) m.done = true;
-    if (m.type === 'score' && gameState.score >= m.target) m.done = true;
-
-    if (m.done) {
-        gameState.score += 30;
-        showFeedback('correct', '🏅 MISSION COMPLETE! +30');
-        setMascot('🛸', 'Nice! You earned a mission bonus!');
-        beep('power');
-        createConfetti();
-    }
 }
 
 // Generate 2-number multiplication (1-12)
@@ -436,9 +381,119 @@ function generateQuestion() {
     document.getElementById('question').textContent = `${num1} × ${num2} =`;
     gameState.questionStartTime = Date.now();
     clearAnswer();
+}
 
-    updateMissionUI();
-    updatePowerUI();
+function getTimeLimitSeconds(level) {
+    const l = Math.max(1, Math.min(MAX_LEVEL, level));
+    return Math.max(1, 6 - l);
+}
+
+function updateLevelAndUI() {
+    const idx = gameState.questionIndex;
+    gameState.level = Math.min(MAX_LEVEL, Math.floor(idx / QUESTIONS_PER_LEVEL) + 1);
+
+    const levelEl = document.getElementById('level');
+    if (levelEl) levelEl.textContent = String(gameState.level);
+    const qEl = document.getElementById('q');
+    if (qEl) qEl.textContent = `${Math.min(idx + 1, gameState.questionsTotal)}/${gameState.questionsTotal}`;
+}
+
+function updateQuestionCountdownUI(remainingSeconds) {
+    const remainEl = document.getElementById('remain');
+    if (remainEl) remainEl.textContent = String(Math.max(0, Math.ceil(remainingSeconds)));
+
+    // Color shift black -> red as time runs out
+    const questionEl = document.getElementById('question');
+    if (questionEl) {
+        const limit = getTimeLimitSeconds(gameState.level);
+        const frac = limit > 0 ? Math.max(0, Math.min(1, remainingSeconds / limit)) : 0;
+        // interpolate from near-black to red
+        const r0 = 20, g0 = 20, b0 = 20;
+        const r1 = 255, g1 = 59, b1 = 48;
+        const r = Math.round(r0 + (r1 - r0) * (1 - frac));
+        const g = Math.round(g0 + (g1 - g0) * (1 - frac));
+        const b = Math.round(b0 + (b1 - b0) * (1 - frac));
+        questionEl.style.color = `rgb(${r}, ${g}, ${b})`;
+    }
+}
+
+function pulseQuestionOnce() {
+    const el = document.getElementById('question');
+    if (!el) return;
+    el.classList.remove('pulse');
+    // force reflow so the animation retriggers
+    void el.offsetWidth;
+    el.classList.add('pulse');
+}
+
+function stopQuestionTimer() {
+    if (gameState.questionTimerInterval) {
+        clearInterval(gameState.questionTimerInterval);
+        gameState.questionTimerInterval = null;
+    }
+}
+
+function startQuestionTimer() {
+    stopQuestionTimer();
+    gameState.questionActive = true;
+    const limit = getTimeLimitSeconds(gameState.level);
+    const start = Date.now();
+    gameState.questionStartTime = start;
+    gameState.lastSecondTick = Math.ceil(limit);
+
+    updateQuestionCountdownUI(limit);
+    pulseQuestionOnce();
+
+    gameState.questionTimerInterval = setInterval(() => {
+        if (!gameState.questionActive) return;
+        const elapsed = (Date.now() - start) / 1000;
+        const remaining = limit - elapsed;
+
+        updateQuestionCountdownUI(remaining);
+
+        const sec = Math.ceil(Math.max(0, remaining));
+        if (sec !== gameState.lastSecondTick) {
+            gameState.lastSecondTick = sec;
+            pulseQuestionOnce();
+            if (sec <= 2) beep('warning');
+        }
+
+        if (remaining <= 0) {
+            // timeout
+            gameState.questionActive = false;
+            stopQuestionTimer();
+            handleTimeout();
+        }
+    }, 50);
+}
+
+function nextQuestion() {
+    if (gameState.questionIndex >= gameState.questionsTotal) {
+        endGame();
+        return;
+    }
+
+    updateLevelAndUI();
+    updateProgressBar();
+    generateQuestion();
+    startQuestionTimer();
+}
+
+function handleTimeout() {
+    gameState.wrong++;
+    gameState.lives = Math.max(0, gameState.lives - 1);
+    showFeedback('wrong', '⏰ Time!');
+    tinyHaptic();
+
+    updateStats();
+
+    // Count this question and continue
+    gameState.questionIndex++;
+
+    setTimeout(() => {
+        if (gameState.lives > 0) nextQuestion();
+        else endGame();
+    }, 600);
 }
 
 function addDigit(digit) {
@@ -462,6 +517,7 @@ function updateAnswerDisplay() {
 
 function submitAnswer() {
     if (!gameState.playerAnswer) return;
+    if (!gameState.questionActive) return;
     
     const guess = parseInt(gameState.playerAnswer);
     
@@ -473,85 +529,52 @@ function submitAnswer() {
 }
 
 function handleCorrect() {
+    gameState.questionActive = false;
+    stopQuestionTimer();
+
     const now = Date.now();
-    const seconds = Math.max(0, (now - (gameState.questionStartTime || now)) / 1000);
-
-    // Base points
-    let points = 10;
-
-    // Speed bonus keeps things exciting
-    if (seconds <= 3) points += 8;
-    else if (seconds <= 5) points += 4;
-
-    // Streak
-    gameState.streak++;
-    if (gameState.streak > gameState.bestStreak) {
-        gameState.bestStreak = gameState.streak;
-    }
-    if (gameState.streak >= 3) points += 5;
-    if (gameState.streak >= 5) points += 5;
-    if (gameState.streak >= 10) points += 10;
-
-    // Power mode: double points for a few turns
-    if (gameState.powerTurns > 0) {
-        points *= 2;
-        gameState.powerTurns = Math.max(0, gameState.powerTurns - 1);
-        if (gameState.powerTurns === 0) {
-            setMascot('🚀', 'Power mode used up! Fill the bar again!');
-        }
-    }
+    const limit = getTimeLimitSeconds(gameState.level);
+    const elapsed = Math.max(0, (now - (gameState.questionStartTime || now)) / 1000);
+    const points = Math.max(0, Math.min(1, (limit - elapsed) / limit));
 
     gameState.score += points;
     gameState.correct++;
 
-    // Fill power bar
-    gameState.power = Math.min(100, gameState.power + 20);
-    if (gameState.power >= 100) {
-        gameState.power = 0;
-        gameState.powerTurns = 5;
-        showFeedback('correct', '✨ POWER MODE! Next 5 = DOUBLE!');
-        setMascot('✨', 'POWER MODE! Double points!');
-        beep('power');
-    } else {
-        const cheer = [
-            '✅ Nailed it!',
-            '🌟 Great job!',
-            '🚀 Blast off!',
-            '💥 BOOM! Correct!',
-            '🧠 Smart move!'
-        ];
-        showFeedback('correct', cheer[Math.floor(Math.random() * cheer.length)]);
-        setMascot('😄', seconds <= 3 ? 'Super fast!' : 'Nice one!');
-        beep('correct');
-    }
-
+    showFeedback('correct', `✅ +${points.toFixed(2)}`);
+    beep('correct');
     tinyHaptic();
-    checkMission({ lastAnswerSeconds: seconds });
 
+    // Count this question and continue
+    gameState.questionIndex++;
     updateStats();
     updateProgressBar();
 
     setTimeout(() => {
-        generateQuestion();
-    }, 700);
+        if (gameState.questionIndex >= gameState.questionsTotal) endGame();
+        else nextQuestion();
+    }, 450);
 }
 
 function handleWrong() {
+    gameState.questionActive = false;
+    stopQuestionTimer();
+
     gameState.wrong++;
-    gameState.streak = 0;
     gameState.lives = Math.max(0, gameState.lives - 1);
 
-    showFeedback('wrong', `💥 Oops! It was ${gameState.currentAnswer}`);
-    setMascot('😵', gameState.lives > 0 ? 'You got this! Try the next one!' : 'Good game!');
+    showFeedback('wrong', `❌ ${gameState.currentAnswer}`);
     beep('wrong');
     tinyHaptic();
 
+    // Count this question and continue
+    gameState.questionIndex++;
     updateStats();
+    updateProgressBar();
 
     setTimeout(() => {
-        if (gameState.lives > 0) generateQuestion();
+        if (gameState.lives > 0) nextQuestion();
         else endGame();
-    }, 1100);
+    }, 650);
 }
 
 function showFeedback(type, message) {
@@ -567,40 +590,30 @@ function hideFeedback() {
 }
 
 function updateStats() {
-    document.getElementById('score').textContent = gameState.score;
-    document.getElementById('streak').textContent = gameState.streak;
+    document.getElementById('score').textContent = gameState.score.toFixed(2);
     updateLivesUI();
-    updateMissionUI();
-    updatePowerUI();
-}
-
-function updateTimer() {
-    const elapsed = Math.floor((Date.now() - gameState.startTime) / 1000);
-    const minutes = Math.floor(elapsed / 60);
-    const seconds = elapsed % 60;
-    document.getElementById('timer').textContent = 
-        `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    updateLevelAndUI();
 }
 
 function updateProgressBar() {
-    const progress = (gameState.score % 50) / 50 * 100;
+    const within = gameState.questionIndex % QUESTIONS_PER_LEVEL;
+    const progress = (within / QUESTIONS_PER_LEVEL) * 100;
     document.getElementById('progress-fill').style.width = progress + '%';
 }
 
 async function endGame() {
-    if (gameState.timerInterval) {
-        clearInterval(gameState.timerInterval);
-        gameState.timerInterval = null;
-    }
+    stopQuestionTimer();
+    gameState.questionActive = false;
     
     gameState.elapsedTime = (Date.now() - gameState.startTime) / 1000;
     
     // Add to global leaderboard
     await addToLeaderboard(gameState.playerName, gameState.score, gameState.elapsedTime);
     
-    document.getElementById('final-score').textContent = gameState.score;
+    document.getElementById('final-score').textContent = gameState.score.toFixed(2);
     document.getElementById('final-correct').textContent = gameState.correct;
-    document.getElementById('final-streak').textContent = gameState.bestStreak;
+    const finalLevel = Math.min(MAX_LEVEL, Math.floor(Math.min(gameState.questionIndex, gameState.questionsTotal - 1) / QUESTIONS_PER_LEVEL) + 1);
+    document.getElementById('final-level').textContent = String(finalLevel);
     
     const minutes = Math.floor(gameState.elapsedTime / 60);
     const seconds = Math.floor(gameState.elapsedTime % 60);
@@ -648,10 +661,8 @@ function createConfetti() {
 
 function quitGame() {
     if (confirm('Are you sure you want to quit?')) {
-        if (gameState.timerInterval) {
-            clearInterval(gameState.timerInterval);
-            gameState.timerInterval = null;
-        }
+        stopQuestionTimer();
+        gameState.questionActive = false;
         showScreen('menu-screen');
     }
 }
@@ -717,11 +728,13 @@ async function showLeaderboard() {
             const platformLabel = entry.platform || (entry.isMobile ? 'Mobile' : 'Desktop');
             const deviceIcon = platformLabel === 'Mobile' ? '📱' : '💻';
             const safeName = escapeHtml(sanitizeName(entry.name));
+            const scoreNum = Number(entry.score);
+            const scoreText = Number.isFinite(scoreNum) ? scoreNum.toFixed(2) : '0.00';
             return `
                 <div class="leaderboard-item">
                     <span class="leaderboard-rank ${rankClass}">${medal}</span>
                     <span class="leaderboard-name">${deviceIcon} ${safeName} <span class="plat">(${platformLabel})</span></span>
-                    <span class="leaderboard-score">${entry.score} pts</span>
+                    <span class="leaderboard-score">${scoreText}</span>
                 </div>
             `;
         }).join('');
@@ -794,7 +807,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const v = tableEl.value;
             gameState.settings.table = v ? Number(v) : null;
             saveSettings();
-            setMascot('🧠', gameState.settings.table ? `Practice ×${gameState.settings.table}!` : 'Mixed mode!');
         });
     }
 
