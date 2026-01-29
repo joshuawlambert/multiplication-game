@@ -302,18 +302,14 @@ function startGame() {
     // Re-detect device
     gameState.isMobile = detectMobile();
     updateDeviceUI();
+
+    // Show game screen before touching UI elements
+    showScreen('game-screen');
     
-    // Update UI
+    // Update UI and start
     updateStats();
     updateProgressBar();
-
-    // Start first question
     nextQuestion();
-    
-    // Show game screen
-    showScreen('game-screen');
-
-    // no mascot
 }
 
 function sanitizeName(name) {
@@ -579,18 +575,21 @@ function handleWrong() {
 
 function showFeedback(type, message) {
     const feedback = document.getElementById('feedback');
+    if (!feedback) return;
     feedback.textContent = message;
     feedback.className = 'feedback ' + type;
 }
 
 function hideFeedback() {
     const feedback = document.getElementById('feedback');
+    if (!feedback) return;
     feedback.textContent = '';
     feedback.className = 'feedback';
 }
 
 function updateStats() {
-    document.getElementById('score').textContent = gameState.score.toFixed(2);
+    const scoreEl = document.getElementById('score');
+    if (scoreEl) scoreEl.textContent = gameState.score.toFixed(2);
     updateLivesUI();
     updateLevelAndUI();
 }
@@ -598,7 +597,8 @@ function updateStats() {
 function updateProgressBar() {
     const within = gameState.questionIndex % QUESTIONS_PER_LEVEL;
     const progress = (within / QUESTIONS_PER_LEVEL) * 100;
-    document.getElementById('progress-fill').style.width = progress + '%';
+    const fill = document.getElementById('progress-fill');
+    if (fill) fill.style.width = progress + '%';
 }
 
 async function endGame() {
